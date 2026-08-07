@@ -4,85 +4,82 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: root
-    width: 1100
-    height: 720
+    width: 1200
+    height: 780
     visible: true
+    color: "#141414"
     title: "AMD-gui — Radeon Software for Linux"
 
-    // the CNext WS panel set (spec/ui-inventory.md); pages without a
-    // functional view show the placeholder state
     ListModel {
         id: navModel
-        ListElement { name: "Gaming"; icon: "🎮" }
-        ListElement { name: "Tuning"; icon: "⚡" }
-        ListElement { name: "Performance"; icon: "📊" }
-        ListElement { name: "Display"; icon: "🖥️" }
-        ListElement { name: "System"; icon: "ℹ️" }
+        ListElement { name: "home"; tip: "Home" }
+        ListElement { name: "gaming"; tip: "Gaming" }
+        ListElement { name: "tuning"; tip: "Tuning" }
+        ListElement { name: "performance"; tip: "Performance" }
+        ListElement { name: "display"; tip: "Display" }
+        ListElement { name: "prefs"; tip: "Preferences" }
     }
 
     RowLayout {
-        anchors.fill: parent
         spacing: 0
+        anchors.fill: parent
 
+        // icon rail
         Rectangle {
-            Layout.preferredWidth: 180
+            Layout.preferredWidth: 72
             Layout.fillHeight: true
-            color: "#1a1a22"
+            color: "#1b1b1b"
             ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                Text {
-                    text: "AMD-gui"
-                    color: "#ff5b5b"
-                    font.bold: true
-                    font.pixelSize: 18
-                }
-                Text {
-                    text: backend.gpuName
-                    color: "#888"
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                }
-                Repeater {
-                    model: navModel
-                    delegate: Button {
-                        Layout.fillWidth: true
-                        text: icon + "  " + name
-                        flat: true
-                        highlighted: navView.currentIndex === index
-                        onClicked: navView.currentIndex = index
+                anchors.top: parent.top
+                anchors.topMargin: 12
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 2
+
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 34
+                    height: 34
+                    radius: 9
+                    color: "#ED1C24"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "A"
+                        color: "white"
+                        font.bold: true
+                        font.pixelSize: 19
                     }
                 }
-                Item { Layout.fillHeight: true }
-                Text {
-                    text: backend.perfLevel + " · " + backend.gpuTemp.toFixed(0) + "°C"
-                    color: "#888"
-                    font.pixelSize: 11
+                Item { height: 14 }
+
+                Repeater {
+                    model: navModel
+                    delegate: IconButton {
+                        iconName: name
+                        tip: tip
+                        active: stack.currentIndex === index
+                        onClicked: stack.currentIndex = index
+                    }
                 }
             }
         }
 
+        // content
         StackLayout {
-            id: navView
+            id: stack
             Layout.fillWidth: true
             Layout.fillHeight: true
-
-            PlaceholderPage { pageName: "Gaming" }
+            HomePage {}
+            GamingPage {}
             TuningPage {}
             PerformancePage {}
-            PlaceholderPage { pageName: "Display" }
+            DisplayPage {}
             SystemPage {}
-        }
-    }
-
-    component PlaceholderPage: Rectangle {
-        property string pageName
-        color: "#121218"
-        Text {
-            anchors.centerIn: parent
-            color: "#666"
-            font.pixelSize: 16
-            text: pageName + " — not implemented yet"
+            Component.onCompleted: {
+                var a = Qt.application.arguments
+                for (var i = 0; i < a.length; ++i)
+                    if (a[i] === "--page")
+                        stack.currentIndex = parseInt(a[i + 1])
+            }
         }
     }
 }

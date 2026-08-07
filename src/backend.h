@@ -19,6 +19,7 @@ class Backend : public QObject
     Q_PROPERTY(QStringList perfLevels READ perfLevels CONSTANT)
     Q_PROPERTY(QStringList sclkStates READ sclkStates NOTIFY odChanged)
     Q_PROPERTY(QString gpuName READ gpuName CONSTANT)
+    Q_PROPERTY(QString kernelVersion READ kernelVersion CONSTANT)
     Q_PROPERTY(QVariantList apps READ apps NOTIFY appsChanged)
     Q_PROPERTY(QVariantList screens READ screens NOTIFY screensChanged)
     Q_PROPERTY(QVariantList connectors READ connectors NOTIFY connectorsChanged)
@@ -44,6 +45,7 @@ public:
     QStringList perfLevels() const { return { "auto", "low", "high", "manual" }; }
     QStringList sclkStates() const { return m_sclkStates; }
     QString gpuName() const;
+    QString kernelVersion() const;
     QVariantList apps() const { return m_apps; }
     QVariantList screens() const { return m_screens; }
     QVariantList connectors() const { return m_connectors; }

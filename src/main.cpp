@@ -30,6 +30,17 @@ int main(int argc, char *argv[])
         desk.remove();
         if (!(ok1 && lo == 600 && hi == 2900 && !ok2 && ok3 && ok4))
             return 2;
+        // apps scan probe (stderr) — must contain maps with name/icon/exec
+        Backend probe;
+        probe.refreshApps();
+        const QVariantList apps = probe.apps();
+        qWarning() << "apps:" << apps.size();
+        for (const QVariant &a : apps) {
+            const QVariantMap m = a.toMap();
+            qWarning() << "  keys:" << m.keys() << "name:" << m["name"].toString();
+            if (apps.size() > 3)
+                break;
+        }
         return 0;
     }
 

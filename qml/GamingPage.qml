@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: page
-    color: "#121218"
+    color: "#141414"
 
     function appName(id) {
         for (let i = 0; i < backend.apps.length; ++i)
@@ -35,7 +35,7 @@ Rectangle {
             Layout.fillWidth: true
             color: "white"
             placeholderTextColor: "#666"
-            background: Rectangle { color: "#1a1a22"; radius: 6 }
+            background: Rectangle { color: "#1e1e1e"; radius: 6 }
         }
 
         RowLayout {
@@ -54,7 +54,7 @@ Rectangle {
                     width: list.width
                     height: 44
                     radius: 6
-                    color: mouse.containsMouse || list.currentIndex === index ? "#2a2a32" : "transparent"
+                    color: mouse.containsMouse || list.currentIndex === index ? "#2a2a2a" : "transparent"
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: 8
@@ -62,21 +62,21 @@ Rectangle {
                         Rectangle {
                             width: 28; height: 28; radius: 14
                             color: "#ff5b5b"
-                            visible: !icon
+                            visible: !modelData.icon
                             Text {
                                 anchors.centerIn: parent
-                                text: name.charAt(0).toUpperCase()
+                                text: modelData.name.charAt(0).toUpperCase()
                                 color: "white"
                                 font.bold: true
                             }
                         }
                         Image {
-                            source: icon ? "file://" + icon : ""
+                            source: modelData.icon ? "file://" + modelData.icon : ""
                             width: 28; height: 28
-                            visible: icon !== ""
+                            visible: modelData.icon !== ""
                         }
                         Text {
-                            text: name
+                            text: modelData.name
                             color: "white"
                             elide: Text.ElideRight
                             Layout.fillWidth: true
@@ -88,7 +88,7 @@ Rectangle {
                         hoverEnabled: true
                         onClicked: {
                             list.currentIndex = index
-                            backend.selectedApp = id
+                            backend.selectedApp = modelData.id
                         }
                     }
                 }
@@ -102,9 +102,10 @@ Rectangle {
             Rectangle {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                color: "#1a1a22"
+                color: "#1e1e1e"
                 radius: 8
                 ColumnLayout {
+                    id: editorCol
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 14
@@ -129,7 +130,7 @@ Rectangle {
                             id: levelBox
                             model: backend.perfLevels
                             currentIndex: Math.max(0, backend.perfLevels.indexOf(
-                                parent.parent.profile.perfLevel || "high"))
+                                editorCol.profile.perfLevel || "high"))
                         }
                     }
 
@@ -139,7 +140,7 @@ Rectangle {
                         Item { Layout.fillWidth: true }
                         Switch {
                             id: gmSwitch
-                            checked: parent.parent.profile.gamemode === true
+                            checked: editorCol.profile.gamemode === true
                         }
                     }
 
@@ -150,11 +151,11 @@ Rectangle {
                         TextField {
                             id: envField
                             Layout.fillWidth: true
-                            text: parent.parent.parent.profile.env || ""
+                            text: editorCol.profile.env || ""
                             color: "white"
                             placeholderText: "e.g. DXVK_HUD=fps GPU_MAX_HEAP_SIZE=8192"
                             placeholderTextColor: "#666"
-                            background: Rectangle { color: "#121218"; radius: 6 }
+                            background: Rectangle { color: "#141414"; radius: 6 }
                         }
                     }
 

@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Rectangle {
-    color: "#121218"
+    color: "#141414"
 
     ColumnLayout {
         anchors.fill: parent

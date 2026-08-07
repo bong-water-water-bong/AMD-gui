@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Rectangle {
-    color: "#121218"
+    color: "#141414"
 
     Timer {
         interval: 2000
@@ -30,7 +30,7 @@ Rectangle {
 
             Rectangle {
                 Layout.fillWidth: true
-                color: "#1a1a22"
+                color: "#1e1e1e"
                 radius: 8
                 implicitHeight: 150
                 ColumnLayout {
@@ -53,7 +53,7 @@ Rectangle {
 
             Rectangle {
                 Layout.fillWidth: true
-                color: "#1a1a22"
+                color: "#1e1e1e"
                 radius: 8
                 implicitHeight: 150
                 ColumnLayout {
@@ -75,7 +75,7 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            color: "#1a1a22"
+            color: "#1e1e1e"
             radius: 8
             implicitHeight: 150
             ColumnLayout {

@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Rectangle {
-    color: "#121218"
+    color: "#141414"
 
     ColumnLayout {
         anchors.fill: parent
@@ -13,86 +13,198 @@ Rectangle {
         Text {
             text: "Tuning"
             color: "white"
-            font.pixelSize: 22
+            font.pixelSize: 20
             font.bold: true
         }
         Text {
-            text: "Overdrive (pp_od_clk_voltage) — GPU clock range. Writes need root."
-            color: "#888"
+            text: "Overdrive (pp_od_clk_voltage) — GPU clock range on the Strix Halo"
+            color: "#9a9a9a"
             font.pixelSize: 12
         }
 
-        RowLayout {
-            Text { text: "Min SCLK"; color: "#aaa" }
-            Slider {
-                id: minSlider
-                Layout.fillWidth: true
-                from: 400
-                to: backend.sclkMax
-                value: backend.sclkMin
-                stepSize: 10
-                enabled: backend.sclkMax > 0
-            }
-            Text { text: minSlider.value + " MHz"; color: "white"; Layout.preferredWidth: 90 }
-        }
-
-        RowLayout {
-            Text { text: "Max SCLK"; color: "#aaa" }
-            Slider {
-                id: maxSlider
-                Layout.fillWidth: true
-                from: backend.sclkMin
-                to: 3200
-                value: backend.sclkMax
-                stepSize: 10
-                enabled: backend.sclkMax > 0
-            }
-            Text { text: maxSlider.value + " MHz"; color: "white"; Layout.preferredWidth: 90 }
-        }
-
-        RowLayout {
-            Text { text: "Performance level"; color: "#aaa" }
-            ComboBox {
-                model: backend.perfLevels
-                currentIndex: backend.perfLevels.indexOf(backend.perfLevel)
-                onActivated: backend.setPerfLevel(currentText)
-            }
-            Item { Layout.fillWidth: true }
-            Button {
-                text: "Apply clocks"
-                enabled: backend.sclkMax > 0
-                onClicked: backend.applySclk(minSlider.value, maxSlider.value)
-            }
-            Button {
-                text: "Reset"
-                onClicked: backend.resetOverdrive()
-            }
-        }
-
-        Text {
-            text: "Clock states (pp_dpm_sclk):"
-            color: "#aaa"
-            font.pixelSize: 12
-        }
-        Repeater {
-            model: backend.sclkStates
-            Text {
-                text: modelData
-                color: modelData.endsWith("*") ? "#ff5b5b" : "#ccc"
-                font.pixelSize: 12
-            }
-        }
-
-        Connections {
-            target: backend
-            function onError(msg) { errorLabel.text = msg }
-        }
-        Text {
-            id: errorLabel
-            color: "#ff5b5b"
-            font.pixelSize: 12
-            wrapMode: Text.WordWrap
+        Rectangle {
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            radius: 12
+            color: "#1e1e1e"
+            border.color: "#262626"
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 22
+                spacing: 18
+
+                // segmented Default/Custom
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 240
+                    height: 34
+                    radius: 17
+                    color: "#141414"
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 2
+                        SegButton {
+                            text: "Default"
+                            on: !customSwitch.checked
+                            onClicked: {
+                                customSwitch.checked = false
+                                backend.setPerfLevel("auto")
+                            }
+                        }
+                        SegButton {
+                            text: "Custom"
+                            on: customSwitch.checked
+                            onClicked: customSwitch.checked = true
+                        }
+                    }
+                }
+
+                // clock sliders
+                RowLayout {
+                    Text {
+                        text: "Min SCLK"
+                        color: "#9a9a9a"
+                        Layout.preferredWidth: 70
+                    }
+                    Slider {
+                        id: minSlider
+                        Layout.fillWidth: true
+                        from: 400
+                        to: backend.sclkMax
+                        value: backend.sclkMin
+                        stepSize: 10
+                        enabled: customSwitch.checked && backend.sclkMax > 0
+                        onMoved: minValue.text = value + " MHz"
+                    }
+                    Text {
+                        id: minValue
+                        text: backend.sclkMin + " MHz"
+                        color: "white"
+                        font.bold: true
+                        Layout.preferredWidth: 90
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
+                RowLayout {
+                    Text {
+                        text: "Max SCLK"
+                        color: "#9a9a9a"
+                        Layout.preferredWidth: 70
+                    }
+                    Slider {
+                        id: maxSlider
+                        Layout.fillWidth: true
+                        from: backend.sclkMin
+                        to: 3200
+                        value: backend.sclkMax
+                        stepSize: 10
+                        enabled: customSwitch.checked && backend.sclkMax > 0
+                        onMoved: maxValue.text = value + " MHz"
+                    }
+                    Text {
+                        id: maxValue
+                        text: backend.sclkMax + " MHz"
+                        color: "white"
+                        font.bold: true
+                        Layout.preferredWidth: 90
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
+                // perf level + apply
+                RowLayout {
+                    Text {
+                        text: "Performance level"
+                        color: "#9a9a9a"
+                    }
+                    ComboBox {
+                        model: backend.perfLevels
+                        currentIndex: Math.max(0, backend.perfLevels.indexOf(backend.perfLevel))
+                        onActivated: backend.setPerfLevel(currentText)
+                    }
+                    Item { Layout.fillWidth: true }
+                    Button {
+                        text: "Apply clocks"
+                        enabled: customSwitch.checked && backend.sclkMax > 0
+                        onClicked: backend.applySclk(minSlider.value, maxSlider.value)
+                    }
+                    Button {
+                        text: "Reset"
+                        onClicked: backend.resetOverdrive()
+                    }
+                }
+
+                // clock states
+                Text {
+                    text: "Clock states (pp_dpm_sclk):"
+                    color: "#9a9a9a"
+                    font.pixelSize: 12
+                }
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Repeater {
+                        model: backend.sclkStates
+                        Rectangle {
+                            height: 26
+                            radius: 13
+                            color: modelData.endsWith("*") ? "#2e1618" : "#242424"
+                            border.color: modelData.endsWith("*") ? "#ED1C24" : "#2e2e2e"
+                            Text {
+                                anchors.centerIn: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                text: modelData
+                                color: modelData.endsWith("*") ? "#ff5a5a" : "#ccc"
+                                font.pixelSize: 11
+                            }
+                        }
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
+
+                Connections {
+                    target: backend
+                    function onError(msg) { errorLabel.text = msg }
+                }
+                Text {
+                    id: errorLabel
+                    color: "#ED1C24"
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+            }
         }
+    }
+
+    component SegButton: Rectangle {
+        property string text
+        property bool on
+        signal clicked()
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        radius: 15
+        color: on ? "#ED1C24" : "transparent"
+        Text {
+            anchors.centerIn: parent
+            text: parent.text
+            color: on ? "white" : "#9a9a9a"
+            font.pixelSize: 12
+            font.bold: on
+        }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: parent.clicked()
+        }
+    }
+
+    // invisible switch driving the segmented control
+    Switch {
+        id: customSwitch
+        visible: false
     }
 }

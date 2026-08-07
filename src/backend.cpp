@@ -10,6 +10,7 @@
 #include <QRegularExpression>
 #include <QScreen>
 #include <QStandardPaths>
+#include <QSysInfo>
 
 #include <cmath>
 
@@ -36,6 +37,11 @@ QString Backend::cardDir() const
             return d;
     }
     return {};
+}
+
+QString Backend::kernelVersion() const
+{
+    return QSysInfo::kernelVersion();
 }
 
 QString Backend::hwmonDir() const
