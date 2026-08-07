@@ -17,8 +17,10 @@ qt_add_qml_module(amd-gui
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/GamingPage.qml
         qml/TuningPage.qml
         qml/PerformancePage.qml
+        qml/DisplayPage.qml
         qml/SystemPage.qml
 )
 

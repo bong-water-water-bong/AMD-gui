@@ -1,3 +1,5 @@
+#include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -17,7 +19,16 @@ int main(int argc, char *argv[])
         bool ok2 = Backend::parseOD(QStringLiteral("garbage"), &lo, &hi);
         bool ok3 = Backend::parseSclkStates(QStringLiteral("0: 600Mhz\n1: 845Mhz *\n2: 2900Mhz"))
                    == QStringList{ "600 MHz", "845 MHz *", "2900 MHz" };
-        if (!(ok1 && lo == 600 && hi == 2900 && !ok2 && ok3))
+        // desktop-file parsing
+        QFile desk(QDir::temp().filePath("amd-gui-test.desktop"));
+        desk.open(QIODevice::WriteOnly);
+        desk.write("[Desktop Entry]\nName=Foo Bar\nIcon=foo\nExec=foo --flag %U\nNoDisplay=false\n");
+        desk.close();
+        const QVariantMap app = Backend::parseDesktopFile(desk.fileName());
+        bool ok4 = app["name"].toString() == QLatin1String("Foo Bar")
+                   && app["exec"].toString() == QLatin1String("foo --flag %U");
+        desk.remove();
+        if (!(ok1 && lo == 600 && hi == 2900 && !ok2 && ok3 && ok4))
             return 2;
         return 0;
     }
