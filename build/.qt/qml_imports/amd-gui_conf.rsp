@@ -1,0 +1,14 @@
+-rootPath
+/home/bcloud/AMD-gui
+-cmake-output
+-output-file
+/home/bcloud/AMD-gui/build/.qt/qml_imports/amd-gui_conf.cmake
+-importPath
+/home/bcloud/AMD-gui/build
+-importPath
+/home/bcloud/AMD-gui/build/AmdGui
+-importPath
+/usr/lib/x86_64-linux-gnu/qt6/qml
+-qrcFiles
+/home/bcloud/AMD-gui/build/.qt/rcc/qmake_AmdGui.qrc
+/home/bcloud/AMD-gui/build/.qt/rcc/amd-gui_raw_qml_0.qrc
