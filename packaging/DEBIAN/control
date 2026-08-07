@@ -1,0 +1,16 @@
+Package: amd-gui
+Version: 0.2.0
+Architecture: amd64
+Maintainer: bong-water-water-bong <staff@amd-gui.dev>
+Depends: libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6,
+ qml6-module-qtquick, qml6-module-qtquick-controls,
+ qml6-module-qtquick-layouts, qml6-module-qtquick-window
+Section: utils
+Priority: optional
+Homepage: https://github.com/bong-water-water-bong/AMD-gui
+Description: Radeon Software for Linux
+ Native Linux re-implementation of AMD Adrenalin (Radeon Software):
+ GPU tuning (Overdrive), live performance metrics, game profiles,
+ display settings, backed by amdgpu sysfs. Tuning writes need the
+ video group + tmpfiles rule, installed by
+ /usr/share/amd-gui/install-permissions.sh (run as root).

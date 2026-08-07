@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=AMD-gui
+Comment=Radeon Software for Linux — GPU tuning, performance, gaming profiles
+Exec=amd-gui
+Terminal=false
+Type=Application
+Icon=amd-gui
+StartupWMClass=amd-gui
+Categories=System;HardwareSettings;

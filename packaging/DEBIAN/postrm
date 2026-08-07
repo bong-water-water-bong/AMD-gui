@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+rm -f /etc/tmpfiles.d/90-amd-gui.conf
+rm -f /etc/systemd/system/power-profiles-daemon.service.d/amd-gui.conf
+rmdir /etc/systemd/system/power-profiles-daemon.service.d 2>/dev/null || true
+systemctl daemon-reload 2>/dev/null || true
+
+exit 0

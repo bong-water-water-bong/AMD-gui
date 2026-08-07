@@ -38,6 +38,17 @@ build/amd-gui --selftest   # parsing logic check, no GPU needed
 build/amd-gui              # run
 ```
 
+## .deb package
+
+```sh
+scripts/build-deb.sh              # -> amd-gui_<ver>_amd64.deb
+sudo apt install ./amd-gui_*.deb  # install
+```
+
+The package installs the binary, desktop entry and icon; its `postinst` also
+installs the tmpfiles rule + power-profiles-daemon drop-in so tuning writes
+work for the `video` group (same as `scripts/install-permissions.sh`).
+
 ## Roadmap
 
 - [x] Extraction + binary specs (qm contexts, PDB map, string corpus)
