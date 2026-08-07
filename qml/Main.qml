@@ -14,10 +14,8 @@ ApplicationWindow {
         id: navModel
         ListElement { name: "home"; tip: "Home" }
         ListElement { name: "gaming"; tip: "Gaming" }
-        ListElement { name: "tuning"; tip: "Tuning" }
         ListElement { name: "performance"; tip: "Performance" }
-        ListElement { name: "display"; tip: "Display" }
-        ListElement { name: "prefs"; tip: "Preferences" }
+        ListElement { name: "prefs"; tip: "Settings" }
     }
 
     RowLayout {
@@ -70,9 +68,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             HomePage {}
             GamingPage {}
-            TuningPage {}
             PerformancePage {}
-            DisplayPage {}
             SystemPage {}
             Component.onCompleted: {
                 var a = Qt.application.arguments

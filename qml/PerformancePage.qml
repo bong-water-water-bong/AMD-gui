@@ -1,20 +1,14 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
+// Performance tab: Metrics | Tuning (Adrenalin sub-tab structure)
 Rectangle {
     color: "#141414"
-
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: backend.refreshMetrics()
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 24
-        spacing: 16
+        spacing: 12
 
         Text {
             text: "Performance"
@@ -22,21 +16,87 @@ Rectangle {
             font.pixelSize: 20
             font.bold: true
         }
-        Text {
-            text: "Live metrics from amdgpu sysfs (1 s poll)"
-            color: "#9a9a9a"
-            font.pixelSize: 12
+
+        TabBar {
+            id: subTabs
+            Layout.fillWidth: true
+            background: Rectangle { color: "transparent" }
+            TabButton {
+                text: "Metrics"
+                background: Rectangle { color: "transparent" }
+                contentItem: Text {
+                    text: parent.text
+                    color: subTabs.currentIndex === 0 ? "#ED1C24" : "#8a8a8a"
+                    font.bold: subTabs.currentIndex === 0
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
+            TabButton {
+                text: "Tuning"
+                background: Rectangle { color: "transparent" }
+                contentItem: Text {
+                    text: parent.text
+                    color: subTabs.currentIndex === 1 ? "#ED1C24" : "#8a8a8a"
+                    font.bold: subTabs.currentIndex === 1
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
         }
 
-        RowLayout {
-            spacing: 16
-            RingGauge { label: "GPU TEMP"; value: backend.gpuTemp; unit: "°C"; max: 110 }
-            RingGauge { label: "GPU POWER"; value: backend.gpuPower; unit: "W"; max: 120 }
-            RingGauge { label: "GPU BUSY"; value: backend.gpuBusy; unit: "%"; max: 100 }
-            RingGauge { label: "VCN BUSY"; value: backend.vcnBusy; unit: "%"; max: 100 }
-        }
+        StackLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            currentIndex: subTabs.currentIndex
 
-        Item { Layout.fillHeight: true }
+            // ---- Metrics ----
+            Rectangle {
+                color: "transparent"
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 14
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Sampling interval"; color: "#9a9a9a" }
+                        Slider {
+                            id: intervalSlider
+                            Layout.fillWidth: true
+                            from: 1
+                            to: 5
+                            stepSize: 1
+                            value: 1
+                        }
+                        Text {
+                            text: intervalSlider.value + " s"
+                            color: "white"
+                            font.bold: true
+                            Layout.preferredWidth: 40
+                            horizontalAlignment: Text.AlignRight
+                        }
+                    }
+
+                    Timer {
+                        interval: intervalSlider.value * 1000
+                        running: true
+                        repeat: true
+                        onTriggered: backend.refreshMetrics()
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 16
+                        RingGauge { label: "GPU TEMP"; value: backend.gpuTemp; unit: "°C"; max: 110 }
+                        RingGauge { label: "GPU POWER"; value: backend.gpuPower; unit: "W"; max: 120 }
+                        RingGauge { label: "GPU BUSY"; value: backend.gpuBusy; unit: "%"; max: 100 }
+                        RingGauge { label: "VCN BUSY"; value: backend.vcnBusy; unit: "%"; max: 100 }
+                    }
+                }
+            }
+
+            // ---- Tuning ----
+            TuningPage {}
+        }
     }
 
     component RingGauge: Rectangle {
@@ -45,6 +105,7 @@ Rectangle {
         property string unit
         property real max
         Layout.fillWidth: true
+        Layout.fillHeight: true
         implicitHeight: 190
         radius: 12
         color: "#1e1e1e"

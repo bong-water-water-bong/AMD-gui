@@ -42,8 +42,8 @@ build/amd-gui              # run
 
 - [x] Extraction + binary specs (qm contexts, PDB map, string corpus)
 - [x] sysfs backend probe + Qt6 shell skeleton with live metrics/tuning
-- [ ] Gaming page: game list + per-game profiles (app profile manager)
-- [ ] Display page: color controls that map to amdgpu/wayland
+- [x] Gaming page: game list + per-game profiles
+- [x] Display page: screens/connectors/night light + Graphics feature matrix
 - [ ] Root strategy for writes (polkit rule or small setuid helper)
 - [ ] PDB deep-dive: AMDRSServ IPC names for the daemonized path
 

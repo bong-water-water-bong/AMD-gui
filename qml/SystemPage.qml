@@ -11,7 +11,7 @@ Rectangle {
         spacing: 10
 
         Text {
-            text: "System"
+            text: "Settings"
             color: "white"
             font.pixelSize: 22
             font.bold: true

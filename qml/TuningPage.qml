@@ -60,6 +60,15 @@ Rectangle {
                     }
                 }
 
+                // Adrenalin presets: Quiet / Balanced / Rage -> low / auto / high
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+                    PresetButton { text: "Quiet"; level: "low"; desc: "Least noise, least performance" }
+                    PresetButton { text: "Balanced"; level: "auto"; desc: "Default power management" }
+                    PresetButton { text: "Rage"; level: "high"; desc: "Maximum performance" }
+                }
+
                 // clock sliders
                 RowLayout {
                     Text {
@@ -199,6 +208,38 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             onClicked: parent.clicked()
+        }
+    }
+
+    component PresetButton: Rectangle {
+        property string text
+        property string level
+        property string desc
+        Layout.fillWidth: true
+        implicitHeight: 54
+        radius: 10
+        color: backend.perfLevel === level ? "#2e1618" : "#242424"
+        border.color: backend.perfLevel === level ? "#ED1C24" : "#2e2e2e"
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 2
+            Text {
+                text: parent.parent.text
+                color: backend.perfLevel === parent.parent.level ? "#ff5a5a" : "white"
+                font.pixelSize: 13
+                font.bold: true
+            }
+            Text {
+                text: parent.parent.desc
+                color: "#9a9a9a"
+                font.pixelSize: 10
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: backend.setPerfLevel(parent.level)
         }
     }
 
