@@ -148,18 +148,28 @@ void Backend::applySclk(int minMhz, int maxMhz)
     const QString d = cardDir();
     if (d.isEmpty())
         return;
-    // overdrive: set min, set max, commit. Needs root.
-    if (!writeFile(d + "/pp_od_clk_voltage",
-                   QStringLiteral("s %1\ns %2\nc\n").arg(minMhz).arg(maxMhz)))
+    // SMU13 (gfx1151): OD writes are rejected unless the DPM level is manual
+    // (verified in smu_v13_0_6_usr_edit_dpm_table: "Only allowed in manual or
+    // determinism mode"). Sequence: manual -> s 0 <min> / s 1 <max> -> c -> auto.
+    if (!writeFile(d + "/power_dpm_force_performance_level", QStringLiteral("manual")))
         return;
+    if (!writeFile(d + "/pp_od_clk_voltage",
+                   QStringLiteral("s 0 %1\ns 1 %2\nc\n").arg(minMhz).arg(maxMhz))) {
+        writeFile(d + "/power_dpm_force_performance_level", QStringLiteral("auto"));
+        return;
+    }
+    writeFile(d + "/power_dpm_force_performance_level", QStringLiteral("auto"));
     refreshOD();
 }
 
 void Backend::resetOverdrive()
 {
     const QString d = cardDir();
-    if (d.isEmpty() || !writeFile(d + "/pp_od_clk_voltage", QStringLiteral("r\n")))
+    if (d.isEmpty())
         return;
+    writeFile(d + "/power_dpm_force_performance_level", QStringLiteral("manual"));
+    writeFile(d + "/pp_od_clk_voltage", QStringLiteral("r\n"));
+    writeFile(d + "/power_dpm_force_performance_level", QStringLiteral("auto"));
     refreshOD();
 }
 

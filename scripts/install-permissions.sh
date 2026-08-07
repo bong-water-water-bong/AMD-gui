@@ -15,6 +15,20 @@ EOF
 
 systemd-tmpfiles --create "$RULE"
 
+# power-profiles-daemon overrides amdgpu perf levels (LACT issue #370) —
+# block its amdgpu action so AMD-gui tuning sticks
+PPD_DROPIN=/etc/systemd/system/power-profiles-daemon.service.d/amd-gui.conf
+PPD_BIN=$(command -v /usr/libexec/power-profiles-daemon || command -v power-profiles-daemon || echo /usr/libexec/power-profiles-daemon)
+mkdir -p "$(dirname "$PPD_DROPIN")"
+cat > "$PPD_DROPIN" <<EOF
+[Service]
+ExecStart=
+ExecStart=$PPD_BIN --block-action=amdgpu_dpm
+EOF
+systemctl daemon-reload && systemctl restart power-profiles-daemon
+
+echo "Installed $RULE and $PPD_DROPIN."
+
 if [ -n "$SUDO_USER" ]; then
     usermod -aG video "$SUDO_USER" || true
 fi
