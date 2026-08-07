@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="/AmdGui">/home/bcloud/AMD-gui/build/AmdGui</file>
-
-  </qresource>
-</RCC>

@@ -1,9 +1,0 @@
-<RCC>
-  <qresource prefix="/AmdGui/">
-    <file alias="qml/Main.qml">/home/bcloud/AMD-gui/qml/Main.qml</file>
-    <file alias="qml/TuningPage.qml">/home/bcloud/AMD-gui/qml/TuningPage.qml</file>
-    <file alias="qml/PerformancePage.qml">/home/bcloud/AMD-gui/qml/PerformancePage.qml</file>
-    <file alias="qml/SystemPage.qml">/home/bcloud/AMD-gui/qml/SystemPage.qml</file>
-  </qresource>
-</RCC>
-

@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/AmdGui">
-    <file alias="qmldir">/home/bcloud/AMD-gui/build/AmdGui/qmldir</file>
-  </qresource>
-</RCC>
-

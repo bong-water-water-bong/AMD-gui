@@ -1,9 +1,0 @@
-module AmdGui
-typeinfo amd-gui.qmltypes
-prefer :/AmdGui/
-Main 1.0 qml/Main.qml
-TuningPage 1.0 qml/TuningPage.qml
-PerformancePage 1.0 qml/PerformancePage.qml
-SystemPage 1.0 qml/SystemPage.qml
-depends QtQuick
-
