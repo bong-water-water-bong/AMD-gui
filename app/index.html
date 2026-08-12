@@ -158,7 +158,14 @@ const perfSub = {
       <div class="card metric"><div class="label">Temp</div><div class="val" id="p-temp">—</div></div>
       <div class="card metric"><div class="label">Power</div><div class="val" id="p-power">—</div></div>
       <div class="card metric"><div class="label">VRAM used</div><div class="val" id="p-vram">—</div></div>
+      <div class="card metric"><div class="label">Mem Busy</div><div class="val" id="p-membusy">—</div></div>
       <div class="card metric"><div class="label">DPM level</div><div class="val" id="p-dpm">—</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2 style="margin-top:0">GPU Activity</h2>
+      <p class="muted">Per-process GPU engine time (drm fdinfo) + VRAM — like Adrenalin's GPU Activity.</p>
+      <table style="margin-top:8px"><thead><tr><th>Process</th><th>PID</th><th>VRAM</th><th>GFX %</th></tr></thead>
+        <tbody id="proc-rows"><tr><td colspan="4" class="muted">—</td></tr></tbody></table>
     </div>`,
   tuning: () => `<div class="card">
       <h2 style="margin-top:0">Global Tuning</h2>
@@ -168,10 +175,12 @@ const perfSub = {
       </div>
       <div class="status" id="dpm-status"></div>
       <h2>GPU Clock (locked)</h2>
-      <div class="locked"><span class="tag">SMU locked</span> Min/max clock, voltage, power limit, temp limit and fan curve are rejected by this APU's power management (verified: <code>pp_od_clk_voltage</code> write → EINVAL). Read-only view:</div>
+      <div class="locked"><span class="tag">SMU locked</span> Min/max clock, voltage, temp limit and fan curve are rejected by this APU's power management (verified: <code>pp_od_clk_voltage</code> write → EINVAL). Read-only view:</div>
       <div class="row"><label>Min Frequency</label><input type="range" min="600" max="2900" disabled id="sclk-min"><span id="sclk-min-v"></span></div>
       <div class="row"><label>Max Frequency</label><input type="range" min="600" max="2900" disabled id="sclk-max"><span id="sclk-max-v"></span></div>
-      <div class="locked"><span class="tag">not exposed</span> Voltage · VRAM tuning · Fan curve · Power &amp; temp limits — no hwmon PWM, no power cap, unified memory (no MCLK OD).</div>
+      <h2>Power Limit</h2>
+      <div id="pw-wrap"></div>
+      <div class="locked"><span class="tag">not exposed</span> Voltage · VRAM tuning · Fan curve · Temp limit — no hwmon PWM, unified memory (no MCLK OD).</div>
       <h2>Tools</h2>
       <div class="row"><label>Stress Test</label><button class="act" id="stress-start">Start (vkmark, headless)</button>
         <button class="ghost" id="stress-stop" disabled>Stop</button></div>
@@ -261,6 +270,18 @@ async function poll() {
   set("m-vram", same); set("p-vram", same);
   set("p-dpm", m.dpm, "");
   set("m-gtt", m.gtt_used && m.gtt_total ? Math.round(m.gtt_used/1048576) + " / " + Math.round(m.gtt_total/1048576) + " MiB" : "—");
+  set("p-membusy", m.mem_busy, "%");
+  // per-process GPU activity
+  const procs = await api("/api/processes");
+  const tb = $("#proc-rows");
+  if (tb) {
+    tb.innerHTML = procs.length ? "" : '<tr><td colspan="4" class="muted">No active GPU processes.</td></tr>';
+    procs.slice(0, 12).forEach(p => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p.name}</td><td class="muted">${p.pid}</td><td>${p.vram_mb} MiB</td><td>${p.gfx_pct}%</td>`;
+      tb.appendChild(tr);
+    });
+  }
   // CSV logger
   if (csvOn) csvRows.push([new Date().toISOString(), busy, m.sclk, m.temp, m.power, m.vram_used]);
 }
@@ -280,6 +301,23 @@ async function loadTuning() {
   const mn = $("#sclk-min"), mx = $("#sclk-max");
   if (mn) { mn.value = t.sclk_min || 600; $("#sclk-min-v").textContent = (t.sclk_min||"—") + " MHz"; }
   if (mx) { mx.value = t.sclk_max || 2900; $("#sclk-max-v").textContent = (t.sclk_max||"—") + " MHz"; }
+  // power limit: enabled only where power1_cap exists
+  const pw = $("#pw-wrap");
+  if (pw) {
+    if (t.power_cap) {
+      pw.innerHTML = `<div class="row"><label>Power Limit</label><input type="range" id="pw-cap" min="${t.power_cap_min}" max="${t.power_cap_max}" step="5" value="${t.power_cap}"><span id="pw-cap-v">${t.power_cap} W</span></div>
+        <div class="status">Applies instantly (power1_cap, ${t.power_cap_min}–${t.power_cap_max} W range).</div>`;
+      const cap = $("#pw-cap");
+      cap.oninput = () => $("#pw-cap-v").textContent = cap.value + " W";
+      cap.onchange = async () => {
+        const r = await api("/api/tuning", { power_cap: +cap.value });
+        flash(r.ok ? "Power limit → " + r.power_cap + " W" : "Failed: " + (r.error || "?"));
+        loadTuning();
+      };
+    } else {
+      pw.innerHTML = `<div class="locked"><span class="tag">no power1_cap</span> Power limit is not exposed by this APU (SMU locked, verified).</div>`;
+    }
+  }
   $("#dpm-status").innerHTML = `Current: <b>${t.dpm}</b> · ranges ${t.sclk_min}–${t.sclk_max} MHz (read-only)`;
   pollStress();
 }

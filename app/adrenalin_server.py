@@ -60,6 +60,7 @@ def get_metrics():
     m["power"] = rd(f"{h}/power1_average") if h else None
     m["vram_used"], m["vram_total"] = rd(f"{dev}/mem_info_vram_used"), rd(f"{dev}/mem_info_vram_total")
     m["gtt_used"], m["gtt_total"] = rd(f"{dev}/mem_info_gtt_used"), rd(f"{dev}/mem_info_gtt_total")
+    m["mem_busy"] = rd(f"{dev}/mem_busy_percent")
     m["dpm"] = rd(f"{dev}/power_dpm_force_performance_level")
     if m["temp"]:
         m["temp"] = str(int(m["temp"]) // 1000)
@@ -78,6 +79,13 @@ def get_tuning():
     mm = re.search(r"SCLK:\s+(\d+)Mhz\s+(\d+)Mhz", od)
     if mm:
         t["sclk_min"], t["sclk_max"] = mm.group(1), mm.group(2)
+    h = hwmon(dev)
+    if h:
+        cap = rd(f"{h}/power1_cap")
+        if cap:
+            t["power_cap"] = round(int(cap) / 1e6)
+            t["power_cap_min"] = round(int(rd(f"{h}/power1_cap_min") or 0) / 1e6)
+            t["power_cap_max"] = round(int(rd(f"{h}/power1_cap_max") or 0) / 1e6)
     return t
 
 
@@ -144,6 +152,55 @@ def stress_stop():
     return stress_status()
 
 
+# Per-process GPU activity: drm fdinfo engine time deltas + per-process VRAM.
+PROCS = {"prev": {}, "t": None}
+
+
+def get_processes():
+    now = time.monotonic()
+    stats = {}
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        fdir = f"/proc/{pid}/fdinfo"
+        try:
+            fds = os.listdir(fdir)
+        except OSError:
+            continue
+        best, vram = 0, 0
+        for fd in fds:
+            try:
+                txt = open(f"{fdir}/{fd}").read()
+            except OSError:
+                continue
+            m = re.search(r"drm-engine-gfx:\s*(\d+)", txt)
+            if m:
+                best = max(best, int(m.group(1)))
+            m = re.search(r"drm-total-vram:\s*(\d+)", txt)
+            if m:
+                vram += int(m.group(1)) * 1024
+        if best > 0:
+            stats[pid] = (best, vram)
+    elapsed = now - PROCS["t"] if PROCS["t"] else 0
+    PROCS["t"] = now
+    out = []
+    for pid, (ns, vram) in stats.items():
+        prev = PROCS["prev"].get(pid, 0)
+        delta = ns - prev
+        if delta <= 0 or elapsed <= 0:
+            continue
+        try:
+            name = open(f"/proc/{pid}/comm").read().strip()
+        except OSError:
+            name = "?"
+        out.append({"pid": int(pid), "name": name,
+                    "vram_mb": round(vram / 1048576, 1),
+                    "gfx_pct": min(100.0, round(delta / 1e9 / elapsed * 100, 1))})
+    PROCS["prev"] = {p: stats[p][0] for p in stats}
+    out.sort(key=lambda p: p["gfx_pct"], reverse=True)
+    return out
+
+
 def reset_shader_cache():
     paths = [os.path.expanduser("~/.cache/mesa_shader_cache"),
              os.path.expanduser("~/.cache/mesa")]
@@ -182,6 +239,8 @@ class H(BaseHTTPRequestHandler):
             self._json(get_info())
         elif self.path == "/api/metrics":
             self._json(get_metrics())
+        elif self.path == "/api/processes":
+            self._json(get_processes())
         elif self.path == "/api/tuning":
             self._json(get_tuning())
         elif self.path == "/api/profiles":
@@ -200,6 +259,13 @@ class H(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             data = {}
         if self.path == "/api/tuning":
+            if "power_cap" in data:
+                h = hwmon(amdgpu()[1])
+                if not h or not rd(f"{h}/power1_cap"):
+                    return self._json({"error": "no power1_cap on this GPU"}, 400)
+                watts = int(data["power_cap"])
+                ok, err = sudo_write(f"{h}/power1_cap", str(watts * 1000000))
+                return self._json({"ok": ok, "power_cap": watts if ok else None, "error": err or None}, 200 if ok else 500)
             lvl = data.get("dpm")
             if lvl not in get_tuning()["levels"]:
                 return self._json({"error": "bad level"}, 400)
