@@ -61,6 +61,7 @@ def get_metrics():
     m["vram_used"], m["vram_total"] = rd(f"{dev}/mem_info_vram_used"), rd(f"{dev}/mem_info_vram_total")
     m["gtt_used"], m["gtt_total"] = rd(f"{dev}/mem_info_gtt_used"), rd(f"{dev}/mem_info_gtt_total")
     m["mem_busy"] = rd(f"{dev}/mem_busy_percent")
+    m["vcn_busy"] = rd(f"{dev}/vcn_busy_percent")
     m["dpm"] = rd(f"{dev}/power_dpm_force_performance_level")
     if m["temp"]:
         m["temp"] = str(int(m["temp"]) // 1000)

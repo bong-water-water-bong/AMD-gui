@@ -159,6 +159,7 @@ const perfSub = {
       <div class="card metric"><div class="label">Power</div><div class="val" id="p-power">—</div></div>
       <div class="card metric"><div class="label">VRAM used</div><div class="val" id="p-vram">—</div></div>
       <div class="card metric"><div class="label">Mem Busy</div><div class="val" id="p-membusy">—</div></div>
+      <div class="card metric"><div class="label">VCN</div><div class="val" id="p-vcn">—</div></div>
       <div class="card metric"><div class="label">DPM level</div><div class="val" id="p-dpm">—</div></div>
     </div>
     <div class="card" style="margin-top:14px">
@@ -271,6 +272,7 @@ async function poll() {
   set("p-dpm", m.dpm, "");
   set("m-gtt", m.gtt_used && m.gtt_total ? Math.round(m.gtt_used/1048576) + " / " + Math.round(m.gtt_total/1048576) + " MiB" : "—");
   set("p-membusy", m.mem_busy, "%");
+  set("p-vcn", m.vcn_busy, "%");
   // per-process GPU activity
   const procs = await api("/api/processes");
   const tb = $("#proc-rows");
