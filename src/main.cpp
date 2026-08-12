@@ -28,7 +28,10 @@ int main(int argc, char *argv[])
         bool ok4 = app["name"].toString() == QLatin1String("Foo Bar")
                    && app["exec"].toString() == QLatin1String("foo --flag %U");
         desk.remove();
-        if (!(ok1 && lo == 600 && hi == 2900 && !ok2 && ok3 && ok4))
+        // fdinfo parser: "drm-engine-gfx:\t12345 ns" -> 12345; junk -> 0
+        bool ok5 = Backend::parseEngineNs(QStringLiteral("drm-engine-gfx:\t78813653802 ns")) == 78813653802
+                   && Backend::parseEngineNs(QStringLiteral("drm-driver:\tamdgpu")) == 0;
+        if (!(ok1 && lo == 600 && hi == 2900 && !ok2 && ok3 && ok4 && ok5))
             return 2;
         // apps scan probe (stderr) — must contain maps with name/icon/exec
         Backend probe;

@@ -79,17 +79,72 @@ Rectangle {
                         interval: intervalSlider.value * 1000
                         running: true
                         repeat: true
-                        onTriggered: backend.refreshMetrics()
+                        onTriggered: {
+                            backend.refreshMetrics()
+                            backend.refreshGpuProcesses()
+                        }
                     }
 
-                    RowLayout {
+                    Flow {
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        spacing: 16
+                        spacing: 14
                         RingGauge { label: "GPU TEMP"; value: backend.gpuTemp; unit: "°C"; max: 110 }
+                        RingGauge { label: "JUNCTION"; value: backend.junctionTemp; unit: "°C"; max: 110 }
+                        RingGauge { label: "MEM TEMP"; value: backend.memTemp; unit: "°C"; max: 110 }
                         RingGauge { label: "GPU POWER"; value: backend.gpuPower; unit: "W"; max: 120 }
                         RingGauge { label: "GPU BUSY"; value: backend.gpuBusy; unit: "%"; max: 100 }
+                        RingGauge { label: "MEM BUSY"; value: backend.memBusy; unit: "%"; max: 100 }
+                        RingGauge { label: "VRAM"; value: backend.vramPct; unit: "%"; max: 100 }
                         RingGauge { label: "VCN BUSY"; value: backend.vcnBusy; unit: "%"; max: 100 }
+                        RingGauge { label: "FAN"; value: backend.fanRpm; unit: "RPM"; max: 4000 }
+                    }
+
+                    // Per-process GPU activity (DRM fdinfo, like Adrenalin's GPU Activity)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 12
+                        color: "#1a1a1a"
+                        border.color: "#262626"
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 6
+                            Text {
+                                text: "GPU ACTIVITY"
+                                color: "#8a8a8a"
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text { text: "PID"; color: "#666"; font.pixelSize: 11; Layout.preferredWidth: 56 }
+                                Text { text: "PROCESS"; color: "#666"; font.pixelSize: 11; Layout.fillWidth: true }
+                                Text { text: "VRAM"; color: "#666"; font.pixelSize: 11; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                                Text { text: "GFX"; color: "#666"; font.pixelSize: 11; Layout.preferredWidth: 56; horizontalAlignment: Text.AlignRight }
+                            }
+                            Rectangle { Layout.fillWidth: true; height: 1; color: "#262626" }
+                            ListView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+                                model: backend.gpuProcesses
+                                delegate: RowLayout {
+                                    Layout.fillWidth: true
+                                    height: 22
+                                    Text { text: modelData.pid; color: "#888"; font.pixelSize: 12; Layout.preferredWidth: 56 }
+                                    Text { text: modelData.name; color: "#ddd"; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
+                                    Text { text: modelData.vramMB > 0 ? modelData.vramMB.toFixed(0) + " MB" : "—"; color: "#aaa"; font.pixelSize: 12; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                                    Text { text: modelData.gfxPct > 0.05 ? modelData.gfxPct.toFixed(1) + " %" : "—"; color: modelData.gfxPct > 0.05 ? "#ED1C24" : "#666"; font.pixelSize: 12; Layout.preferredWidth: 56; horizontalAlignment: Text.AlignRight }
+                                }
+                            }
+                            Text {
+                                text: "No GPU activity — launch an app or game to see per-process usage"
+                                visible: backend.gpuProcesses.length === 0
+                                color: "#555"
+                                font.pixelSize: 11
+                            }
+                        }
                     }
                 }
             }
@@ -105,8 +160,8 @@ Rectangle {
         property string unit
         property real max
         Layout.fillWidth: true
-        Layout.fillHeight: true
-        implicitHeight: 190
+        Layout.preferredWidth: 170
+        Layout.preferredHeight: 190
         radius: 12
         color: "#1e1e1e"
         border.color: "#262626"

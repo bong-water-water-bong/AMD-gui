@@ -122,6 +122,33 @@ Rectangle {
                     }
                 }
 
+                RowLayout {
+                    Text {
+                        text: "Power limit"
+                        color: "#9a9a9a"
+                        Layout.preferredWidth: 70
+                    }
+                    Slider {
+                        id: capSlider
+                        Layout.fillWidth: true
+                        from: backend.powerCapMin > 0 ? backend.powerCapMin : 200
+                        to: backend.powerCapMax > 0 ? backend.powerCapMax : 340
+                        value: backend.powerCap > 0 ? backend.powerCap : 317
+                        stepSize: 5
+                        enabled: customSwitch.checked && backend.powerCapMax > 0
+                        onMoved: capValue.text = value + " W"
+                        onPressedChanged: if (!pressed) backend.setPowerCap(value)
+                    }
+                    Text {
+                        id: capValue
+                        text: backend.powerCap + " W"
+                        color: "white"
+                        font.bold: true
+                        Layout.preferredWidth: 90
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
                 // perf level + apply
                 RowLayout {
                     Text {

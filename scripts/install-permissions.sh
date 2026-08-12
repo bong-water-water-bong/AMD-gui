@@ -11,6 +11,7 @@ cat > "$RULE" <<'EOF'
 # AMD-gui: let the video group tune GPU clocks / perf levels
 m /sys/class/drm/card*/device/pp_od_clk_voltage 0666 root video
 m /sys/class/drm/card*/device/power_dpm_force_performance_level 0666 root video
+m /sys/class/hwmon/hwmon*/power1_cap 0666 root video
 EOF
 
 systemd-tmpfiles --create "$RULE"

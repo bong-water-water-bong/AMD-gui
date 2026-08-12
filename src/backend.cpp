@@ -22,6 +22,11 @@ Backend::Backend(QObject *parent) : QObject(parent)
     refreshScreens();
     refreshNightLight();
 
+    // VRAM is constant per card — read once (mem_info_vram_total, bytes)
+    const QString card = cardDir();
+    if (!card.isEmpty())
+        m_vramGB = readFile(card + "/mem_info_vram_total").trimmed().toDouble() / (1024.0 * 1024 * 1024);
+
     connect(qApp, &QGuiApplication::screenAdded, this, &Backend::refreshScreens);
     connect(qApp, &QGuiApplication::screenRemoved, this, &Backend::refreshScreens);
     connect(qApp, &QGuiApplication::primaryScreenChanged, this, &Backend::refreshScreens);
@@ -86,10 +91,101 @@ void Backend::refreshMetrics()
     if (hw.isEmpty())
         return;
     m_temp = readFile(hw + "/temp1_input").trimmed().toDouble() / 1000.0;
+    m_junction = readFile(hw + "/temp2_input").trimmed().toDouble() / 1000.0;
+    m_mem = readFile(hw + "/temp3_input").trimmed().toDouble() / 1000.0;
+    m_fan = readFile(hw + "/fan1_input").trimmed().toInt();
     m_power = readFile(hw + "/power1_average").trimmed().toDouble() / 1e6;
+    m_powerCap = readFile(hw + "/power1_cap").trimmed().toInt() / 1000000;
+    m_powerCapMin = readFile(hw + "/power1_cap_min").trimmed().toInt() / 1000000;
+    m_powerCapMax = readFile(hw + "/power1_cap_max").trimmed().toInt() / 1000000;
     const QString card = cardDir();
     m_busy = readFile(card + "/gpu_busy_percent").trimmed().toInt();
     m_vcn = readFile(card + "/vcn_busy_percent").trimmed().toInt();
+    m_memBusy = readFile(card + "/mem_busy_percent").trimmed().toInt();
+    m_vramUsedBytes = readFile(card + "/mem_info_vram_used").trimmed().toDouble();
+    emit metricsChanged();
+}
+
+qint64 Backend::parseEngineNs(const QString &line)
+{
+    // "drm-engine-gfx:\t78813653802 ns" -> 78813653802
+    static const QRegularExpression re(QStringLiteral("drm-engine-gfx:\\s*\\d+"));
+    const auto m = re.match(line);
+    if (!m.hasMatch())
+        return 0;
+    return m.captured(0).section(QStringLiteral(":"), 1).trimmed().toLongLong();
+}
+
+void Backend::refreshGpuProcesses()
+{
+    const qint64 nowNs = m_procTimer.isValid() ? m_procTimer.restart() : 0;
+    if (nowNs <= 0) {
+        m_procTimer.start();
+        return; // first poll: just baseline the engine counters
+    }
+
+    struct ProcStat {
+        qint64 engineNs = 0;
+        double vramBytes = 0;
+    };
+    QHash<qint64, ProcStat> stats;
+
+    const QDir proc(QStringLiteral("/proc"));
+    const QStringList pids = proc.entryList({ "[0-9]*" }, QDir::Dirs);
+    for (const QString &pidStr : pids) {
+        const qint64 pid = pidStr.toLongLong();
+        const QDir fdinfoDir(QStringLiteral("/proc/%1/fdinfo").arg(pidStr));
+        const QStringList fds = fdinfoDir.entryList(QDir::Files);
+        for (const QString &fd : fds) {
+            const QString text = readFile(fdinfoDir.filePath(fd));
+            const qint64 engineNs = parseEngineNs(text);
+            if (engineNs <= 0)
+                continue;
+            ProcStat &s = stats[pid];
+            s.engineNs = qMax(s.engineNs, engineNs);
+            // drm-total-vram:\t12345 KiB (may appear on multiple fds; sum)
+            static const QRegularExpression vramRe(QStringLiteral("drm-total-vram:\\s*(\\d+)"));
+            const auto vramM = vramRe.match(text);
+            if (vramM.hasMatch())
+                s.vramBytes += vramM.captured(1).toDouble() * 1024.0;
+        }
+    }
+
+    // pid -> engine ns delta over the poll interval = GPU usage %
+    QVariantList out;
+    const double elapsedSec = nowNs / 1e9;
+    for (auto it = stats.constBegin(); it != stats.constEnd(); ++it) {
+        const qint64 prev = m_prevEngineNs.value(it.key(), 0);
+        const qint64 delta = it.value().engineNs - prev;
+        if (delta <= 0)
+            continue;
+        QVariantMap m;
+        m["pid"] = it.key();
+        m["name"] = readFile(QStringLiteral("/proc/%1/comm").arg(it.key())).trimmed();
+        m["vramMB"] = it.value().vramBytes / (1024.0 * 1024.0);
+        m["gfxPct"] = qBound(0.0, delta / 1e9 / elapsedSec * 100.0, 100.0);
+        out << m;
+    }
+    std::sort(out.begin(), out.end(), [](const QVariant &a, const QVariant &b) {
+        return a.toMap()["gfxPct"].toDouble() > b.toMap()["gfxPct"].toDouble();
+    });
+
+    m_prevEngineNs.clear();
+    for (auto it = stats.constBegin(); it != stats.constEnd(); ++it)
+        m_prevEngineNs[it.key()] = it.value().engineNs;
+
+    m_gpuProcesses = out;
+    emit gpuProcessesChanged();
+}
+
+void Backend::setPowerCap(int watts)
+{
+    const QString hw = hwmonDir();
+    if (hw.isEmpty())
+        return;
+    if (!writeFile(hw + "/power1_cap", QString::number(qint64(watts) * 1000000)))
+        return;
+    m_powerCap = watts;
     emit metricsChanged();
 }
 

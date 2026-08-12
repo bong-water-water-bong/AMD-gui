@@ -18,6 +18,11 @@ Rectangle {
         }
 
         InfoRow { k: "GPU"; v: backend.gpuName }
+        InfoRow { k: "VRAM"; v: backend.vramGB > 0 ? backend.vramUsedGB.toFixed(1) + " / " + backend.vramGB.toFixed(0) + " GB" : "—" }
+        InfoRow { k: "Kernel"; v: backend.kernelVersion }
+        InfoRow { k: "Fan"; v: backend.fanRpm + " RPM" }
+        InfoRow { k: "Power limit"; v: backend.powerCap > 0 ? backend.powerCap + " W" : "—" }
+        InfoRow { k: "Temps"; v: (backend.gpuTemp.toFixed(0) + " / " + backend.junctionTemp.toFixed(0) + " / " + backend.memTemp.toFixed(0)) + " °C (edge/junction/mem)" }
         InfoRow { k: "Perf level"; v: backend.perfLevel }
         InfoRow { k: "SCLK range"; v: backend.sclkMin > 0 ? backend.sclkMin + "–" + backend.sclkMax + " MHz" : "no overdrive" }
         InfoRow { k: "Clock states"; v: backend.sclkStates.join("  ") }
