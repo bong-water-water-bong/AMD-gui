@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMD Software: Adrenalin Edition — WinBoat</title>
+<style>
+  :root {
+    --bg:#131316; --panel:#1c1c21; --panel2:#222228; --line:#2d2d35;
+    --text:#e9e9ec; --muted:#8d8d97; --red:#ff2b2b; --red2:#e02424;
+    --green:#34d399;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font:14px/1.45 "Segoe UI",system-ui,sans-serif; }
+  /* top bar */
+  .topbar { display:flex; align-items:center; gap:14px; padding:10px 18px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo .ring { width:26px; height:26px; border-radius:50%; border:2px solid var(--red); display:grid; place-items:center; font-size:11px; font-weight:700; color:var(--red); }
+  .logo b { font-size:15px; letter-spacing:.3px; }
+  .logo span { color:var(--muted); font-size:12px; }
+  .spacer { flex:1; }
+  .ver { color:var(--muted); font-size:12px; }
+  .pill { background:var(--panel2); border:1px solid var(--line); padding:3px 10px; border-radius:12px; font-size:12px; color:var(--muted); }
+  /* layout */
+  .wrap { display:flex; height:calc(100vh - 49px); }
+  .rail { width:64px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; padding-top:10px; gap:4px; }
+  .rail button { width:48px; height:44px; background:none; border:none; color:var(--muted); font-size:19px; cursor:pointer; border-radius:8px; }
+  .rail button:hover { background:var(--panel2); color:var(--text); }
+  .rail button.active { color:var(--red); background:var(--panel2); }
+  main { flex:1; overflow-y:auto; padding:22px 28px; }
+  .subtabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .subtabs button { background:none; border:none; color:var(--muted); padding:8px 16px; font-size:14px; cursor:pointer; border-bottom:2px solid transparent; }
+  .subtabs button.active { color:var(--text); border-color:var(--red); }
+  h1 { font-size:20px; font-weight:600; margin-bottom:14px; }
+  h2 { font-size:15px; font-weight:600; margin:20px 0 10px; color:var(--text); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+  .metric .label { color:var(--muted); font-size:12px; }
+  .metric .val { font-size:26px; font-weight:600; margin-top:4px; }
+  .metric .val small { font-size:13px; color:var(--muted); font-weight:400; }
+  .bar { height:5px; background:var(--panel2); border-radius:3px; margin-top:8px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--red),#ff7a7a); }
+  .row { display:flex; align-items:center; gap:10px; margin:8px 0; }
+  .row label { width:210px; color:var(--muted); font-size:13px; }
+  input[type=range] { flex:1; accent-color:var(--red); }
+  input[type=text] { background:var(--panel2); border:1px solid var(--line); color:var(--text); padding:6px 10px; border-radius:6px; width:200px; }
+  select { background:var(--panel2); border:1px solid var(--line); color:var(--text); padding:6px 10px; border-radius:6px; }
+  button.act { background:var(--red2); color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button.act:hover { background:var(--red); }
+  button.ghost { background:var(--panel2); color:var(--text); border:1px solid var(--line); padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button.ghost:hover { border-color:var(--muted); }
+  .locked { display:flex; gap:8px; align-items:center; color:var(--muted); background:var(--panel2); border:1px dashed var(--line); border-radius:8px; padding:10px 12px; margin:6px 0; font-size:12.5px; }
+  .locked .tag { color:#fbbf24; font-weight:600; white-space:nowrap; }
+  .status { font-size:12px; color:var(--muted); margin-top:6px; }
+  .ok { color:var(--green); }
+  table { width:100%; border-collapse:collapse; }
+  td,th { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); font-size:13px; }
+  th { color:var(--muted); font-weight:500; }
+  .flash { position:fixed; right:18px; bottom:18px; background:var(--panel2); border:1px solid var(--line); border-left:3px solid var(--red); padding:10px 14px; border-radius:6px; font-size:13px; opacity:0; transition:opacity .25s; }
+  .flash.show { opacity:1; }
+  .muted { color:var(--muted); }
+  .spark { display:flex; gap:2px; align-items:flex-end; height:44px; }
+  .spark i { width:5px; background:var(--red); border-radius:1px; opacity:.85; }
+  .na-note { font-size:12px; color:var(--muted); margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">
+    <div class="ring">A</div>
+    <div><b>AMD Software</b> <span>Adrenalin Edition</span></div>
+  </div>
+  <span class="pill">WinBoat · Strix Halo</span>
+  <div class="spacer"></div>
+  <span class="ver" id="ver">GPU driver —</span>
+</div>
+
+<div class="wrap">
+  <div class="rail" id="rail">
+    <button data-tab="home" title="Home">🏠</button>
+    <button data-tab="gaming" title="Gaming">🎮</button>
+    <button data-tab="perf" title="Performance" class="active">⚡</button>
+    <button data-tab="settings" title="Settings">⚙️</button>
+  </div>
+
+  <main id="content"></main>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const api = async (p, body) => {
+  const r = await fetch(p, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : undefined);
+  return r.json();
+};
+const fmt = (v, u="") => v === null || v === undefined ? "—" : v + u;
+const flash = m => { const f = $("#flash"); f.textContent = m; f.classList.add("show"); setTimeout(()=>f.classList.remove("show"), 2500); };
+const busyHist = [];
+
+const views = {
+  home: () => `<h1>Home</h1>
+    <div class="grid">
+      <div class="card metric"><div class="label">GPU Usage</div><div class="val" id="m-busy">—</div><div class="bar"><i id="m-busy-bar"></i></div></div>
+      <div class="card metric"><div class="label">GPU Clock (SCLK)</div><div class="val" id="m-sclk">—</div></div>
+      <div class="card metric"><div class="label">Temperature</div><div class="val" id="m-temp">—</div></div>
+      <div class="card metric"><div class="label">Power (PPT)</div><div class="val" id="m-power">—</div></div>
+      <div class="card metric"><div class="label">VRAM Used</div><div class="val" id="m-vram">—</div></div>
+      <div class="card metric"><div class="label">GTT (shared mem)</div><div class="val" id="m-gtt">—</div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="label muted">GPU Usage — last 60s</div><div class="spark" id="spark" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:14px">
+      <h2 style="margin-top:0">System</h2>
+      <div class="row"><label>GPU</label><span id="i-gpu">—</span></div>
+      <div class="row"><label>Driver</label><span id="i-driver">—</span></div>
+      <div class="row"><label>Firmware</label><span id="i-fw">—</span></div>
+      <div class="row"><label>PCI</label><span id="i-pci">—</span></div>
+      <div class="row"><label>VRAM total</label><span id="i-vram">—</span></div>
+    </div>`,
+  gaming: () => `<h1>Gaming</h1>
+    <div class="subtabs">
+      <button class="active">Games</button><button>Graphics</button><button>Display</button><button>Advisors</button>
+    </div>
+    <div class="card"><h2 style="margin-top:0">Games</h2>
+      <p class="muted">Games run inside the WinBoat Windows guest (virtio-gpu + DXVK/Mesa). Per-game driver profiles are Windows-driver features and do not exist on this host. In-guest FPS control: gamescope-style caps via the guest; metrics: mangohud inside the guest.</p>
+    </div>
+    <div class="card" style="margin-top:12px"><h2 style="margin-top:0">Graphics — driver-level features</h2>
+      <div class="locked"><span class="tag">Windows-only</span> Radeon Anti-Lag, Boost, Chill, Enhanced Sync, AFMF frame-gen, RSR, Image Sharpening — implemented in the Windows display driver. Guest renders via Mesa (DXVK/Venus); equivalents: <b>fps cap</b> (gamescope), <b>FSR</b> (gamescope), <b>sharpening</b> (CAS).</div>
+    </div>
+    <div class="card" style="margin-top:12px"><h2 style="margin-top:0">Display</h2>
+      <div class="locked"><span class="tag">headless</span> FreeSync, HDR, 10-bit, VSR, GPU scaling need a native display scanout. This host has no display; the guest is reached over RDP.</div>
+    </div>`,
+  perf: () => `<h1>Performance</h1>
+    <div class="subtabs">
+      <button data-sub="metrics" class="active">Metrics</button>
+      <button data-sub="tuning">Tuning</button>
+    </div>
+    <div id="perf-body"></div>`,
+  settings: () => `<h1>Settings</h1>
+    <div class="subtabs">
+      <button data-sub="system" class="active">System</button>
+      <button data-sub="profiles">Profiles</button>
+      <button data-sub="hotkeys">Hotkeys</button>
+    </div>
+    <div id="set-body"></div>`,
+};
+
+const perfSub = {
+  metrics: () => `<div class="card">
+      <div class="row"><label>Overlay</label><span class="muted">Use <b>mangohud</b> inside the guest for in-game overlay; this page for host telemetry.</span></div>
+      <div class="row"><label>Sampling interval</label><select id="samp"><option>1s</option><option>2s</option><option>5s</option></select></div>
+      <div class="row"><label>Log metrics to CSV</label><button class="ghost" id="csv-toggle">Start logging</button></div>
+      <div class="status" id="csv-status">Off. Logs in-browser; download on stop.</div>
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card metric"><div class="label">GPU Usage</div><div class="val" id="p-busy">—</div><div class="bar"><i id="p-busy-bar"></i></div></div>
+      <div class="card metric"><div class="label">SCLK</div><div class="val" id="p-sclk">—</div></div>
+      <div class="card metric"><div class="label">Temp</div><div class="val" id="p-temp">—</div></div>
+      <div class="card metric"><div class="label">Power</div><div class="val" id="p-power">—</div></div>
+      <div class="card metric"><div class="label">VRAM used</div><div class="val" id="p-vram">—</div></div>
+      <div class="card metric"><div class="label">DPM level</div><div class="val" id="p-dpm">—</div></div>
+    </div>`,
+  tuning: () => `<div class="card">
+      <h2 style="margin-top:0">Global Tuning</h2>
+      <div class="row"><label>Performance level (DPM)</label>
+        <select id="dpm"><option value="auto">Auto</option><option value="low">Low</option><option value="high">High</option><option value="manual">Manual</option></select>
+        <button class="act" id="dpm-apply">Apply</button>
+      </div>
+      <div class="status" id="dpm-status"></div>
+      <h2>GPU Clock (locked)</h2>
+      <div class="locked"><span class="tag">SMU locked</span> Min/max clock, voltage, power limit, temp limit and fan curve are rejected by this APU's power management (verified: <code>pp_od_clk_voltage</code> write → EINVAL). Read-only view:</div>
+      <div class="row"><label>Min Frequency</label><input type="range" min="600" max="2900" disabled id="sclk-min"><span id="sclk-min-v"></span></div>
+      <div class="row"><label>Max Frequency</label><input type="range" min="600" max="2900" disabled id="sclk-max"><span id="sclk-max-v"></span></div>
+      <div class="locked"><span class="tag">not exposed</span> Voltage · VRAM tuning · Fan curve · Power &amp; temp limits — no hwmon PWM, no power cap, unified memory (no MCLK OD).</div>
+      <h2>Tools</h2>
+      <div class="row"><label>Stress Test</label><button class="act" id="stress-start">Start (vkmark, headless)</button>
+        <button class="ghost" id="stress-stop" disabled>Stop</button></div>
+      <div class="status" id="stress-status">Idle.</div>
+      <div class="row" style="margin-top:12px"><label>Reset Shader Cache</label><button class="ghost" id="shader-reset">Clear mesa shader cache</button></div>
+      <div class="status" id="shader-status"></div>
+    </div>`,
+};
+
+const setSub = {
+  system: () => `<div class="card">
+      <h2 style="margin-top:0">System</h2>
+      <div class="row"><label>Driver version</label><span id="s-driver">—</span></div>
+      <div class="row"><label>Check for updates</label><button class="ghost" id="upd-check">Check</button></div>
+      <div class="status" id="upd-status"></div>
+      <h2>Factory Reset</h2>
+      <div class="row"><label>Restore defaults (DPM → auto)</label><button class="ghost" id="factory-reset">Reset</button></div>
+      <div class="status" id="reset-status"></div>
+      <h2>Settings import / export</h2>
+      <div class="row"><label>Export current tuning</label><button class="ghost" id="export">Export JSON</button></div>
+      <div class="row"><label>Import</label><input type="file" id="import" accept=".json"></div>
+    </div>`,
+  profiles: () => `<div class="card">
+      <h2 style="margin-top:0">Profiles — save, load, share</h2>
+      <div class="row"><label>New profile name</label><input type="text" id="prof-name" placeholder="e.g. high-dpm-gaming"></div>
+      <div class="row"><label>Save current tuning</label><button class="act" id="prof-save">Save</button></div>
+      <table style="margin-top:12px"><thead><tr><th>Name</th><th>DPM</th><th>Saved</th><th></th><th></th></tr></thead>
+        <tbody id="prof-rows"><tr><td colspan="5" class="muted">No profiles.</td></tr></tbody></table>
+    </div>`,
+  hotkeys: () => `<div class="card">
+      <h2 style="margin-top:0">Hotkeys</h2>
+      <p class="muted">Adrenalin hotkeys are Windows-driver bindings. Host equivalents:</p>
+      <table style="margin-top:10px">
+        <tr><th>Adrenalin</th><th>Default</th><th>Host equivalent</th></tr>
+        <tr><td>Radeon Overlay</td><td>Ctrl+Shift+O</td><td>mangohud (guest)</td></tr>
+        <tr><td>Record / Instant Replay</td><td>Ctrl+Shift+E / Ctrl+Shift+S</td><td>OBS hotkeys</td></tr>
+        <tr><td>Screenshot</td><td>Ctrl+Shift+I</td><td>OBS / guest PrtSc</td></tr>
+        <tr><td>Radeon Chill toggle</td><td>—</td><td>gamescope fps-limit keybind</td></tr>
+      </table>
+    </div>`,
+};
+
+let tab = "perf", sub = "metrics";
+const DEFAULT_SUB = { perf: "metrics", settings: "system" };
+function render() {
+  $("#content").innerHTML = views[tab]();
+  $$("#content .subtabs button").forEach(b => b.onclick = () => { sub = b.dataset.sub; render(); });
+  if (tab === "perf") { subRender("perf-body", perfSub, sub); }
+  if (tab === "settings") { subRender("set-body", setSub, sub); }
+  if (tab === "home") loadInfo();
+  wire();
+}
+function subRender(id, map, cur) {
+  $("#" + id).innerHTML = map[cur]();
+  if (cur === "tuning") loadTuning();
+  if (cur === "profiles") loadProfiles();
+}
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+
+function wire() {
+  $$("#rail button").forEach(b => {
+    b.onclick = () => { tab = b.dataset.tab; sub = DEFAULT_SUB[tab] || sub; $$("#rail button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); render(); };
+  });
+  // metrics
+  if (tab === "home" || (tab === "perf" && sub === "metrics")) {
+    const samp = $("#samp");
+    if (samp) samp.onchange = e => { clearInterval(pollT); pollT = setInterval(poll, +e.target.value.slice(0,-1) * 1000); };
+    wireCSV();
+  }
+  if (tab === "perf" && sub === "tuning") wireTuning();
+  if (tab === "settings" && sub === "system") wireSystem();
+  if (tab === "settings" && sub === "profiles") wireProfiles();
+}
+
+async function poll() {
+  const m = await api("/api/metrics");
+  const busy = +m.busy || 0;
+  busyHist.push(busy); if (busyHist.length > 60) busyHist.shift();
+  const spark = $("#spark"); if (spark) spark.innerHTML = busyHist.map(v => `<i style="height:${Math.max(4, v)}%"></i>`).join("");
+  const set = (id, v, u) => { const el = $("#" + id); if (el) el.innerHTML = fmt(v, u); };
+  set("m-busy", busy, "%"); set("m-busy-bar", ""); const bb = $("#m-busy-bar"); if (bb) bb.style.width = busy + "%";
+  set("p-busy", busy, "%"); const pb = $("#p-busy-bar"); if (pb) pb.style.width = busy + "%";
+  set("m-sclk", m.sclk, " MHz"); set("p-sclk", m.sclk, " MHz");
+  set("m-temp", m.temp, " °C"); set("p-temp", m.temp, " °C");
+  set("m-power", m.power, " W"); set("p-power", m.power, " W");
+  const same = m.vram_used && m.vram_total ? Math.round(m.vram_used/1048576) + " / " + Math.round(m.vram_total/1048576) + " MiB" : "—";
+  set("m-vram", same); set("p-vram", same);
+  set("p-dpm", m.dpm, "");
+  set("m-gtt", m.gtt_used && m.gtt_total ? Math.round(m.gtt_used/1048576) + " / " + Math.round(m.gtt_total/1048576) + " MiB" : "—");
+  // CSV logger
+  if (csvOn) csvRows.push([new Date().toISOString(), busy, m.sclk, m.temp, m.power, m.vram_used]);
+}
+let pollT = setInterval(poll, 1000), csvOn = false, csvRows = [];
+
+async function loadInfo() {
+  const i = await api("/api/info");
+  const set = (id, v) => { const el = $("#" + id); if (el) el.textContent = v || "—"; };
+  set("i-gpu", i.gpu); set("i-driver", i.driver + (i.fw ? " (fw " + i.fw + ")" : "")); set("i-fw", i.fw);
+  set("i-pci", (i.pci||"") + " @ " + (i.slot||"")); set("i-vram", i.vram_total ? Math.round(i.vram_total/1073741824) + " GiB" : "—");
+  $("#ver").textContent = "GPU driver — " + (i.driver || "—") + (i.fw ? " " + i.fw : "");
+}
+
+async function loadTuning() {
+  const t = await api("/api/tuning");
+  const d = $("#dpm"); if (d) d.value = t.dpm || "auto";
+  const mn = $("#sclk-min"), mx = $("#sclk-max");
+  if (mn) { mn.value = t.sclk_min || 600; $("#sclk-min-v").textContent = (t.sclk_min||"—") + " MHz"; }
+  if (mx) { mx.value = t.sclk_max || 2900; $("#sclk-max-v").textContent = (t.sclk_max||"—") + " MHz"; }
+  $("#dpm-status").innerHTML = `Current: <b>${t.dpm}</b> · ranges ${t.sclk_min}–${t.sclk_max} MHz (read-only)`;
+  pollStress();
+}
+function wireTuning() {
+  $("#dpm-apply").onclick = async () => {
+    const r = await api("/api/tuning", { dpm: $("#dpm").value });
+    flash(r.ok ? "DPM → " + r.dpm : "Failed: " + (r.error || "?")); loadTuning();
+  };
+  $("#stress-start").onclick = async () => { const r = await api("/api/stress/start"); flash(r.error ? r.error : "Stress test running"); pollStress(); };
+  $("#stress-stop").onclick = async () => { await api("/api/stress/stop"); pollStress(); };
+  $("#shader-reset").onclick = async () => { const r = await api("/api/shader-cache/reset"); $("#shader-status").textContent = "Cleared " + r.freed_mb + " MB"; };
+}
+async function pollStress() {
+  const s = await api("/api/stress");
+  const st = $("#stress-status"); if (!st) return;
+  st.innerHTML = s.running ? `<span class="ok">● Running (pid ${s.pid}) — vkmark on Radeon 8060S (RADV)</span>` : "Idle.";
+  $("#stress-start").disabled = s.running; $("#stress-stop").disabled = !s.running;
+}
+async function wireSystem() {
+  const i = await api("/api/info");
+  $("#s-driver").textContent = (i.driver||"—") + " fw " + (i.fw||"—");
+  $("#upd-check").onclick = () => $("#upd-status").textContent = "Managed by the distro package manager (amdgpu ships with kernel).";
+  $("#factory-reset").onclick = async () => { const r = await api("/api/reset", {}); $("#reset-status").textContent = r.ok ? "Reset to auto." : "Failed: " + (r.error||"?") ; };
+  $("#export").onclick = async () => {
+    const t = await api("/api/tuning");
+    const blob = new Blob([JSON.stringify({gpu: i.gpu, exported_at: new Date().toISOString(), tuning: t}, null, 2)], {type:"application/json"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "adrenalin-settings.json"; a.click();
+  };
+  $("#import").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const j = JSON.parse(await f.text());
+    if (j.tuning && j.tuning.dpm) { const r = await api("/api/tuning", { dpm: j.tuning.dpm }); flash(r.ok ? "Imported: DPM → " + r.dpm : "Import failed"); }
+    else flash("No tuning data in file");
+  };
+}
+async function loadProfiles() {
+  const ps = await api("/api/profiles");
+  const tb = $("#prof-rows"); if (!tb) return;
+  tb.innerHTML = ps.length ? "" : '<tr><td colspan="5" class="muted">No profiles.</td></tr>';
+  ps.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${p.name}</td><td>${p.dpm}</td><td class="muted">${p.saved_at}</td>`;
+    const ld = document.createElement("td"), dl = document.createElement("td");
+    const lb = document.createElement("button"); lb.className="ghost"; lb.textContent="Load"; lb.onclick = async () => { const r = await api("/api/profiles/load", {name: p.name}); flash(r.ok ? "Loaded " + p.name + " (DPM " + r.dpm + ")" : "Failed"); };
+    const db = document.createElement("button"); db.className="ghost"; db.textContent="Delete"; db.onclick = async () => { await api("/api/profiles/delete", {name: p.name}); loadProfiles(); };
+    ld.appendChild(lb); dl.appendChild(db); tr.appendChild(ld); tr.appendChild(dl);
+    tb.appendChild(tr);
+  });
+}
+function wireProfiles() {
+  $("#prof-save").onclick = async () => {
+    const name = $("#prof-name").value; if (!name) return flash("Enter a name");
+    const t = await api("/api/tuning");
+    const r = await api("/api/profiles", { name, dpm: t.dpm });
+    flash("Saved " + r.name); loadProfiles();
+  };
+}
+// CSV logger wiring (metrics sub-tab)
+function wireCSV() {
+  const b = $("#csv-toggle"); if (!b) return;
+  b.onclick = () => {
+    csvOn = !csvOn;
+    if (csvOn) { csvRows = [["time","busy%","sclk","tempC","powerW","vramUsed"]]; b.textContent = "Stop & download"; $("#csv-status").textContent = "Logging…"; }
+    else {
+      b.textContent = "Start logging";
+      const blob = new Blob([csvRows.map(r => r.join(",")).join("\n")], {type:"text/csv"});
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "adrenalin-metrics.csv"; a.click();
+      $("#csv-status").textContent = "Downloaded " + (csvRows.length-1) + " samples.";
+    }
+  };
+}
+render();
+</script>
+</body>
+</html>
