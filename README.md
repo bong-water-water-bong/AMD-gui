@@ -61,6 +61,13 @@ mojo build adrenalin.mojo -o adrenalin_server   # needs mojo==1.0.0 (uv tool ins
 endpoint, status code, and key/type matches — see `ADRENALINE_CAPTURE.md`
 for the feature map.
 
+Deploy to the Strix Halo box (builds, bundles the 3 Mojo runtime `.so`s,
+scp's, restarts):
+
+```sh
+scripts/deploy-strixhalo.sh
+```
+
 ## .deb package
 
 ```sh
