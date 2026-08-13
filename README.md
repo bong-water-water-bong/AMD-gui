@@ -43,6 +43,24 @@ build/amd-gui --selftest   # parsing logic check, no GPU needed
 build/amd-gui              # run
 ```
 
+## Adrenalin web replica (Mojo 1.0)
+
+The replica backend is now a **single Mojo 1.0 binary** (`app/adrenalin.mojo`,
+stdlib-only, no community packages) — wire-compatible with the Python server
+it replaces, verified endpoint-by-endpoint:
+
+```sh
+cd app
+mojo build adrenalin.mojo -o adrenalin_server   # needs mojo==1.0.0 (uv tool install mojo==1.0.0)
+./adrenalin_server --selftest                   # parsing checks, no GPU needed
+./start.sh                                      # prefers the binary, falls back to Python
+```
+
+`start.sh` picks the Mojo binary when present, else the Python server
+(`adrenalin_server.py` still ships as reference). Same wire contract: every
+endpoint, status code, and key/type matches — see `ADRENALINE_CAPTURE.md`
+for the feature map.
+
 ## .deb package
 
 ```sh
