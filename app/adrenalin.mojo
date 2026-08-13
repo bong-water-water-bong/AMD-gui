@@ -267,7 +267,15 @@ struct Server:
                     var start = j
                     while j < rest.byte_length() and Server.isdigit_byte(rest[byte=j : j + 1]):
                         j += 1
-                    nums.append(String(rest[byte=start:j]))
+                    # Python's regex was SCLK:\s+(\d+)Mhz\s+(\d+)Mhz —
+                    # "Mhz" must IMMEDIATELY follow the digits, else this
+                    # SCLK: occurrence isn't the OD_RANGE line (OD_SCLK:
+                    # entries like "0: 600Mhz" fail this check).
+                    if j + 3 <= rest.byte_length() and rest[byte=j : j + 3] == String("Mhz"):
+                        nums.append(String(rest[byte=start:j]))
+                        j += 3
+                    else:
+                        break
                 else:
                     j += 1
             if nums.__len__() == 2:
