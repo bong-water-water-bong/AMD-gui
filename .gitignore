@@ -2,3 +2,4 @@
 build/
 *.deb
 app/adrenalin_server
+app/runtime/
