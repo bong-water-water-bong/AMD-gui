@@ -250,23 +250,29 @@ struct Server:
 
     @staticmethod
     def parse_sclk(od: String) -> List[String]:
-        # "SCLK: 600Mhz 2900Mhz" — two number runs, no regex
+        # two number runs after "SCLK:" — no regex. OD_SCLK: lines contain
+        # "SCLK:" too, so scan every occurrence and take the first that
+        # yields exactly two numbers (the OD_RANGE: SCLK: min max line).
         var out = List[String]()
-        var i = od.find("SCLK:")
-        if i < 0:
-            return out^
-        var rest = od[byte=i + 5 :]
-        var nums = 0
-        var j = 0
-        while j < rest.byte_length() and nums < 2:
-            if Server.isdigit_byte(rest[byte=j : j + 1]):
-                var start = j
-                while j < rest.byte_length() and Server.isdigit_byte(rest[byte=j : j + 1]):
+        var pos = 0
+        while True:
+            var i = od.find("SCLK:", pos)
+            if i < 0:
+                break
+            var rest = od[byte=i + 5 :]
+            var nums = List[String]()
+            var j = 0
+            while j < rest.byte_length() and nums.__len__() < 2:
+                if Server.isdigit_byte(rest[byte=j : j + 1]):
+                    var start = j
+                    while j < rest.byte_length() and Server.isdigit_byte(rest[byte=j : j + 1]):
+                        j += 1
+                    nums.append(String(rest[byte=start:j]))
+                else:
                     j += 1
-                out.append(String(rest[byte=start:j]))
-                nums += 1
-            else:
-                j += 1
+            if nums.__len__() == 2:
+                return nums^
+            pos = i + 5
         return out^
 
     @staticmethod
