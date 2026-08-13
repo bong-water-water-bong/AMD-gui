@@ -6,28 +6,34 @@
 <title>AMD Software: Adrenalin Edition — WinBoat</title>
 <style>
   :root {
-    --bg:#131316; --panel:#1c1c21; --panel2:#222228; --line:#2d2d35;
-    --text:#e9e9ec; --muted:#8d8d97; --red:#ff2b2b; --red2:#e02424;
+    --bg:#16171a; --panel:#1e1f24; --panel2:#26272d; --line:#33343b;
+    --text:#f2f2f4; --muted:#9a9aa5; --red:#ed1c24; --red2:#c8121a;
     --green:#34d399;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--text); font:14px/1.45 "Segoe UI",system-ui,sans-serif; }
-  /* top bar */
-  .topbar { display:flex; align-items:center; gap:14px; padding:10px 18px; background:var(--panel); border-bottom:1px solid var(--line); }
-  .logo { display:flex; align-items:center; gap:10px; }
-  .logo .ring { width:26px; height:26px; border-radius:50%; border:2px solid var(--red); display:grid; place-items:center; font-size:11px; font-weight:700; color:var(--red); }
-  .logo b { font-size:15px; letter-spacing:.3px; }
-  .logo span { color:var(--muted); font-size:12px; }
+  body { background:var(--bg); color:var(--text); font:14px/1.45 "AMDRTG","Segoe UI",system-ui,sans-serif; overflow:hidden; }
+  /* top bar — AMD Software: Adrenalin Edition */
+  .topbar { display:flex; align-items:center; gap:16px; padding:9px 20px; background:var(--panel); border-bottom:1px solid var(--line); height:54px; }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo img { height:26px; }
+  .logo .titles b { font-size:15px; letter-spacing:.4px; font-weight:700; }
+  .logo .titles span { color:var(--muted); font-size:11.5px; display:block; letter-spacing:.2px; }
   .spacer { flex:1; }
-  .ver { color:var(--muted); font-size:12px; }
-  .pill { background:var(--panel2); border:1px solid var(--line); padding:3px 10px; border-radius:12px; font-size:12px; color:var(--muted); }
-  /* layout */
-  .wrap { display:flex; height:calc(100vh - 49px); }
-  .rail { width:64px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; padding-top:10px; gap:4px; }
-  .rail button { width:48px; height:44px; background:none; border:none; color:var(--muted); font-size:19px; cursor:pointer; border-radius:8px; }
-  .rail button:hover { background:var(--panel2); color:var(--text); }
-  .rail button.active { color:var(--red); background:var(--panel2); }
-  main { flex:1; overflow-y:auto; padding:22px 28px; }
+  .topbar .icon-btn { background:none; border:none; color:var(--muted); width:34px; height:34px; border-radius:6px; cursor:pointer; display:grid; place-items:center; font-size:15px; }
+  .topbar .icon-btn:hover { background:var(--panel2); color:var(--text); }
+  .ver { color:var(--muted); font-size:12px; margin-right:6px; }
+  /* layout — sidebar with icon + label (Adrenalin style) */
+  .wrap { display:flex; height:calc(100vh - 54px); }
+  .sidebar { width:208px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:12px 10px; gap:2px; flex-shrink:0; }
+  .nav-item { display:flex; align-items:center; gap:11px; width:100%; padding:9px 10px; background:none; border:none; border-radius:7px; color:var(--muted); font-size:13.5px; cursor:pointer; text-align:left; font-family:inherit; }
+  .nav-item img { width:22px; height:22px; filter:brightness(.72); }
+  .nav-item:hover { background:var(--panel2); color:var(--text); }
+  .nav-item:hover img { filter:brightness(1); }
+  .nav-item.active { background:var(--panel2); color:var(--text); font-weight:600; }
+  .nav-item.active img { filter:brightness(1); }
+  .nav-sep { height:1px; background:var(--line); margin:8px 6px; }
+  .sidebar .spacer { flex:1; }
+  main { flex:1; overflow-y:auto; padding:24px 30px; }
   .subtabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--line); }
   .subtabs button { background:none; border:none; color:var(--muted); padding:8px 16px; font-size:14px; cursor:pointer; border-bottom:2px solid transparent; }
   .subtabs button.active { color:var(--text); border-color:var(--red); }
@@ -67,20 +73,24 @@
 <body>
 <div class="topbar">
   <div class="logo">
-    <div class="ring">A</div>
-    <div><b>AMD Software</b> <span>Adrenalin Edition</span></div>
+    <img src="assets/logo.png" alt="AMD">
+    <div class="titles"><b>AMD Software</b><span>Adrenalin Edition</span></div>
   </div>
-  <span class="pill">WinBoat · Strix Halo</span>
   <div class="spacer"></div>
   <span class="ver" id="ver">GPU driver —</span>
+  <button class="icon-btn" title="Notifications">🔔</button>
+  <button class="icon-btn" title="Help">❔</button>
+  <button class="icon-btn" id="tb-settings" title="Settings">⚙</button>
 </div>
 
 <div class="wrap">
-  <div class="rail" id="rail">
-    <button data-tab="home" title="Home">🏠</button>
-    <button data-tab="gaming" title="Gaming">🎮</button>
-    <button data-tab="perf" title="Performance" class="active">⚡</button>
-    <button data-tab="settings" title="Settings">⚙️</button>
+  <div class="sidebar" id="rail">
+    <button class="nav-item" data-tab="home" title="Home"><img src="assets/home-icon.png" alt="">Home</button>
+    <button class="nav-item" data-tab="gaming" title="Gaming"><img src="assets/gaming-icon.png" alt="">Gaming</button>
+    <button class="nav-item" data-tab="replay" title="Record & Stream"><img src="assets/relive-icon.png" alt="">Record &amp; Stream</button>
+    <button class="nav-item" data-tab="perf" title="Performance" class="active"><img src="assets/performance-icon.png" alt="">Performance</button>
+    <div class="nav-sep"></div>
+    <button class="nav-item" data-tab="settings" title="Settings"><img src="assets/gear-icon.png" alt="">Settings</button>
   </div>
 
   <main id="content"></main>
@@ -129,6 +139,17 @@ const views = {
     </div>
     <div class="card" style="margin-top:12px"><h2 style="margin-top:0">Display</h2>
       <div class="locked"><span class="tag">headless</span> FreeSync, HDR, 10-bit, VSR, GPU scaling need a native display scanout. This host has no display; the guest is reached over RDP.</div>
+    </div>`,
+  replay: () => `<h1>Record &amp; Stream</h1>
+    <div class="subtabs">
+      <button class="active">Record</button><button>Live Stream</button><button>Scene Editor</button><button>Media</button><button>Settings</button>
+    </div>
+    <div class="card"><h2 style="margin-top:0">Record</h2>
+      <div class="row"><label>Record</label><button class="act">● REC</button> <button class="ghost">Instant Replay</button></div>
+      <div class="locked"><span class="tag">host-side</span> Recording / streaming / instant replay run through <b>OBS</b> on the host (AV1 via VA-API on the 8060S). Adrenalin's ReLive is Windows-driver capture.</div>
+    </div>
+    <div class="card" style="margin-top:12px"><h2 style="margin-top:0">Media</h2>
+      <p class="muted">Recordings live in OBS' output folder; screenshots from the WinBoat guest land on the host desktop.</p>
     </div>`,
   perf: () => `<h1>Performance</h1>
     <div class="subtabs">
@@ -225,7 +246,7 @@ const setSub = {
 };
 
 let tab = "perf", sub = "metrics";
-const DEFAULT_SUB = { perf: "metrics", settings: "system" };
+const DEFAULT_SUB = { perf: "metrics", settings: "system", gaming: "games" };
 function render() {
   $("#content").innerHTML = views[tab]();
   $$("#content .subtabs button").forEach(b => b.onclick = () => { sub = b.dataset.sub; render(); });
@@ -242,6 +263,8 @@ function subRender(id, map, cur) {
 const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 
 function wire() {
+  const tb = $("#tb-settings");
+  if (tb) tb.onclick = () => { tab = "settings"; sub = "system"; $$("#rail button").forEach(x=>x.classList.remove("active")); $$("#rail button").forEach(x=>{ if (x.dataset.tab==="settings") x.classList.add("active"); }); render(); };
   $$("#rail button").forEach(b => {
     b.onclick = () => { tab = b.dataset.tab; sub = DEFAULT_SUB[tab] || sub; $$("#rail button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); render(); };
   });

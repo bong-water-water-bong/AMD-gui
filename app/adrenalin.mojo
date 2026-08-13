@@ -696,15 +696,33 @@ struct Server:
         return s
 
     @staticmethod
-    def index_path() -> String:
+    def app_dir() -> String:
         try:
             var exe = realpath("/proc/self/exe")
             var i = exe.rfind("/")
             if i >= 0:
-                return exe[byte=0:i] + "/index.html"
+                return String(exe[byte=0:i])
         except:
             pass
-        return "index.html"
+        return "."
+
+    @staticmethod
+    def index_path() -> String:
+        return Server.app_dir() + "/index.html"
+
+    @staticmethod
+    def asset_path(name: String) -> String:
+        return Server.app_dir() + "/assets/" + name
+
+    @staticmethod
+    def asset_type(name: String) -> String:
+        if name.endswith(".png"):
+            return "image/png"
+        if name.endswith(".ttf"):
+            return "font/ttf"
+        if name.endswith(".svg"):
+            return "image/svg+xml"
+        return "application/octet-stream"
 
     def handle_client(mut self, c: Int):
         var bufp = external_call["malloc", Int](Server.max_req())
@@ -734,6 +752,8 @@ struct Server:
         var code = 400
         var ctype = "text/plain"
         var body = "bad request"
+        var raw_addr = 0
+        var raw_len = 0
         if headers_end >= 0:
             var head = req[byte=0:headers_end]
             var lines = head.split("\r\n")
@@ -744,15 +764,20 @@ struct Server:
                 var post_body = String()
                 if method == "POST" and clen > 0 and headers_end + 4 + clen <= total:
                     post_body = String(req[byte=headers_end + 4 : headers_end + 4 + clen])
-                code, ctype, body = self.dispatch(method, path, post_body)
+                code, ctype, body, raw_addr, raw_len = self.dispatch(method, path, post_body)
+        var rlen = raw_len if raw_addr != 0 else body.byte_length()
         var resp = (
             "HTTP/1.1 " + String(code) + " " + Server.reason(code) + "\r\n"
             + "Content-Type: " + ctype + "\r\n"
-            + "Content-Length: " + String(body.byte_length()) + "\r\n"
-            + "Connection: close\r\n\r\n" + body
+            + "Content-Length: " + String(rlen) + "\r\n"
+            + "Connection: close\r\n\r\n" + (body if raw_addr == 0 else String())
         )
         var sent = external_call["send", c_int](c, Int(resp.unsafe_ptr()), c_int(resp.byte_length()), c_int(0x4000))
         _ = sent
+        if raw_addr != 0:
+            var sent2 = external_call["send", c_int](c, raw_addr, c_int(raw_len), c_int(0x4000))
+            _ = sent2
+            _ = external_call["free", c_int](raw_addr)
         _ = external_call["free", c_int](bufp)
 
     def serve(mut self, port: Int):
@@ -790,31 +815,58 @@ struct Server:
             _ = external_call["close", c_int](c)
 
     # ── router ──────────────────────────────────────────────────────────
-    def dispatch(mut self, method: String, path: String, body: String) -> Tuple[Int, String, String]:
+    def dispatch(mut self, method: String, path: String, body: String) -> Tuple[Int, String, String, Int, Int]:
         if method == "GET":
             if path == "/" or path == "/index.html":
                 try:
                     var f = open(Server.index_path(), "r")
                     var html = f.read()
                     f.close()
-                    return 200, "text/html; charset=utf-8", html
+                    return 200, "text/html; charset=utf-8", html, 0, 0
                 except:
-                    return 500, "text/plain", "index.html missing"
+                    return 500, "text/plain", "index.html missing", 0, 0
             if path == "/api/info":
-                return 200, "application/json", self.get_info()
+                return 200, "application/json", self.get_info(), 0, 0
             if path == "/api/metrics":
-                return 200, "application/json", self.get_metrics()
+                return 200, "application/json", self.get_metrics(), 0, 0
             if path == "/api/processes":
-                return 200, "application/json", self.get_processes()
+                return 200, "application/json", self.get_processes(), 0, 0
             if path == "/api/tuning":
-                return 200, "application/json", self.get_tuning()
+                return 200, "application/json", self.get_tuning(), 0, 0
             if path == "/api/profiles":
-                return 200, "application/json", self.list_profiles()
+                return 200, "application/json", self.list_profiles(), 0, 0
             if path == "/api/stress":
-                return 200, "application/json", self.stress_status()
+                return 200, "application/json", self.stress_status(), 0, 0
             if path == "/api/stress/log":
-                return 200, "text/plain", Server.file_tail(Server.stress_log(), 40000)
-            return 404, "application/json", '{"error": "not found"}'
+                return 200, "text/plain", Server.file_tail(Server.stress_log(), 40000), 0, 0
+            if path.startswith("/assets/"):
+                var name = String(path[byte=8:])
+                # block traversal: slashes/backslashes only (dots are legit)
+                var safe = String()
+                for i in range(name.byte_length()):
+                    var c = name[byte=i : i + 1]
+                    if c == String("/") or c == String("\\"):
+                        safe += "_"
+                    else:
+                        safe += c
+                var ap = Server.asset_path(safe)
+                if isfile(ap):
+                    var sz = 0
+                    try:
+                        sz = getsize(ap)
+                    except:
+                        pass
+                    var addr = external_call["malloc", Int](sz)
+                    if addr != 0 and sz > 0:
+                        var fd = external_call["open64", c_int](ap.as_c_string_slice(), c_int(0))
+                        if fd >= 0:
+                            var got = external_call["pread64", c_int](c_int(fd), addr, c_int(sz), c_int(0))
+                            _ = external_call["close", c_int](fd)
+                            if Int(got) == sz:
+                                return 200, Server.asset_type(safe), String(), addr, sz
+                        _ = external_call["free", c_int](addr)
+                return 404, "text/plain", "asset not found", 0, 0
+            return 404, "application/json", '{"error": "not found"}', 0, 0
         if method == "POST":
             if path == "/api/tuning":
                 var cap = Server.extract_int(body, "power_cap")
@@ -822,11 +874,11 @@ struct Server:
                     var card, dev = Server.amdgpu()
                     var h = Server.hwmon(dev) if dev else String()
                     if not h or not isfile(join(h, "power1_cap")):
-                        return 400, "application/json", '{"error": "no power1_cap on this GPU"}'
+                        return 400, "application/json", '{"error": "no power1_cap on this GPU"}', 0, 0
                     var ok, err = Server.sudo_write(join(h, "power1_cap"), String(cap.value() * 1000000))
                     if ok:
-                        return 200, "application/json", '{"ok": true, "power_cap": ' + String(cap.value()) + ', "error": null}'
-                    return 500, "application/json", '{"ok": false, "power_cap": null, "error": ' + Server.jstr(err) + "}"
+                        return 200, "application/json", '{"ok": true, "power_cap": ' + String(cap.value()) + ', "error": null}', 0, 0
+                    return 500, "application/json", '{"ok": false, "power_cap": null, "error": ' + Server.jstr(err) + "}", 0, 0
                 var lvl = Server.extract_string(body, "dpm")
                 if lvl:
                     var v = lvl.value()
@@ -835,19 +887,19 @@ struct Server:
                         if l == v:
                             in_levels = True
                     if not in_levels:
-                        return 400, "application/json", '{"error": "bad level"}'
+                        return 400, "application/json", '{"error": "bad level"}', 0, 0
                     var card, dev = Server.amdgpu()
                     var ok, err = Server.sudo_write(join(dev, "power_dpm_force_performance_level"), v)
                     if ok:
-                        return 200, "application/json", '{"ok": true, "dpm": ' + Server.jstr(v) + ', "error": null}'
-                    return 500, "application/json", '{"ok": false, "dpm": null, "error": ' + Server.jstr(err) + "}"
-                return 500, "application/json", '{"ok": false, "dpm": null, "error": null}'
+                        return 200, "application/json", '{"ok": true, "dpm": ' + Server.jstr(v) + ', "error": null}', 0, 0
+                    return 500, "application/json", '{"ok": false, "dpm": null, "error": ' + Server.jstr(err) + "}", 0, 0
+                return 500, "application/json", '{"ok": false, "dpm": null, "error": null}', 0, 0
             if path == "/api/profiles":
                 var name = Server.extract_string(body, "name")
                 var dpm = Server.extract_string(body, "dpm")
                 if name and dpm:
-                    return 200, "application/json", self.save_profile(name.value(), dpm.value())
-                return 400, "application/json", '{"error": "bad profile"}'
+                    return 200, "application/json", self.save_profile(name.value(), dpm.value()), 0, 0
+                return 400, "application/json", '{"error": "bad profile"}', 0, 0
             if path == "/api/profiles/load":
                 var name = Server.extract_string(body, "name")
                 if name:
@@ -855,9 +907,9 @@ struct Server:
                     if t:
                         var card, dev = Server.amdgpu()
                         var ok, err = Server.sudo_write(join(dev, "power_dpm_force_performance_level"), t.value())
-                        return 200, "application/json", '{"ok": ' + ("true" if ok else "false") + ', "dpm": ' + Server.jstr(t.value()) + ', "error": ' + Server.jstr(err) + "}"
-                    return 404, "application/json", '{"error": "profile not found"}'
-                return 404, "application/json", '{"error": "profile not found"}'
+                        return 200, "application/json", '{"ok": ' + ("true" if ok else "false") + ', "dpm": ' + Server.jstr(t.value()) + ', "error": ' + Server.jstr(err) + "}", 0, 0
+                    return 404, "application/json", '{"error": "profile not found"}', 0, 0
+                return 404, "application/json", '{"error": "profile not found"}', 0, 0
             if path == "/api/profiles/delete":
                 var name = Server.extract_string(body, "name")
                 if name:
@@ -865,23 +917,23 @@ struct Server:
                     if f:
                         try:
                             unlink(f.value())
-                            return 200, "application/json", '{"ok": true}'
+                            return 200, "application/json", '{"ok": true}', 0, 0
                         except:
-                            return 500, "application/json", '{"ok": false}'
-                    return 404, "application/json", '{"error": "not found"}'
-                return 404, "application/json", '{"error": "not found"}'
+                            return 500, "application/json", '{"ok": false}', 0, 0
+                    return 404, "application/json", '{"error": "not found"}', 0, 0
+                return 404, "application/json", '{"error": "not found"}', 0, 0
             if path == "/api/stress/start":
-                return 200, "application/json", self.stress_start()
+                return 200, "application/json", self.stress_start(), 0, 0
             if path == "/api/stress/stop":
-                return 200, "application/json", self.stress_stop()
+                return 200, "application/json", self.stress_stop(), 0, 0
             if path == "/api/shader-cache/reset":
-                return 200, "application/json", self.reset_shader_cache()
+                return 200, "application/json", self.reset_shader_cache(), 0, 0
             if path == "/api/reset":
                 var card, dev = Server.amdgpu()
                 var ok, err = Server.sudo_write(join(dev, "power_dpm_force_performance_level"), "auto")
-                return 200, "application/json", '{"ok": ' + ("true" if ok else "false") + ', "error": ' + Server.jstr(err) + "}"
-            return 404, "application/json", '{"error": "not found"}'
-        return 501, "text/plain", "unsupported method"
+                return 200, "application/json", '{"ok": ' + ("true" if ok else "false") + ', "error": ' + Server.jstr(err) + "}", 0, 0
+            return 404, "application/json", '{"error": "not found"}', 0, 0
+        return 501, "text/plain", "unsupported method", 0, 0
 
     def find_profile_dpm(self, name: String) -> Optional[String]:
         var f = self.find_profile_file(name)
