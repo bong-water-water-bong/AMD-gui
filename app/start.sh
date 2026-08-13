@@ -6,7 +6,8 @@ cd "$(dirname "$0")"
 [ -f /tmp/adrenalin.pid ] && kill "$(cat /tmp/adrenalin.pid)" 2>/dev/null
 sleep 0.5
 if [ -x ./adrenalin_server ]; then
-    setsid ./adrenalin_server > /tmp/adrenalin-server.log 2>&1 < /dev/null &
+    # Mojo runtime .so's ship in ./runtime (see scripts/deploy-strixhalo.sh)
+    LD_LIBRARY_PATH=runtime${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} setsid ./adrenalin_server > /tmp/adrenalin-server.log 2>&1 < /dev/null &
 else
     setsid python3 -u adrenalin_server.py > /tmp/adrenalin-server.log 2>&1 < /dev/null &
 fi
