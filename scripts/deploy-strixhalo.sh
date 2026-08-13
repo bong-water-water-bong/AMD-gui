@@ -20,7 +20,8 @@ scp app/adrenalin_server app/runtime/*.so strixhalo:~/AMD-gui/app/runtime/ 2>/de
     ssh strixhalo 'mkdir -p ~/AMD-gui/app/runtime'
     scp app/adrenalin_server app/runtime/*.so strixhalo:~/AMD-gui/app/runtime/
 }
-ssh strixhalo 'cp ~/AMD-gui/app/runtime/adrenalin_server ~/AMD-gui/app/adrenalin_server'
+# stop first so the running binary isn't text-file-busy, then swap
+ssh strixhalo 'pkill -f "adrenalin_serve[r]" 2>/dev/null; sleep 0.5; mv ~/AMD-gui/app/runtime/adrenalin_server ~/AMD-gui/app/adrenalin_server && chmod +x ~/AMD-gui/app/adrenalin_server'
 ssh strixhalo 'cd ~/AMD-gui/app && LD_LIBRARY_PATH=runtime ./adrenalin_server --selftest | tail -1'
 ssh strixhalo 'cd ~/AMD-gui/app && ./start.sh && sleep 1 && curl -s localhost:8080/api/metrics | head -c 120 && echo'
 echo "== done: http://192.168.50.69:8080"
